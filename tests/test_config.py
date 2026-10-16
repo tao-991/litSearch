@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -119,3 +120,29 @@ def test_invalid_number_names_the_variable() -> None:
 def test_min_delay_must_not_exceed_max_delay() -> None:
     with pytest.raises(ValueError, match="GS_MIN_DELAY"):
         Settings.from_env(environ={"GS_MIN_DELAY": "30", "GS_MAX_DELAY": "10"})
+
+
+def test_anthropic_base_url_is_read_and_kept_out_of_repr() -> None:
+    s = Settings.from_env(
+        environ={"ANTHROPIC_BASE_URL": " https://relay.example.com/v1 "}
+    )
+    assert s.anthropic_base_url == "https://relay.example.com/v1"
+    assert "relay.example.com" not in repr(s)
+    assert Settings.from_env(environ={}).anthropic_base_url is None
+
+
+@pytest.mark.parametrize("bad", ["relay.example.com", "ftp://relay.example.com", "/v1"])
+def test_anthropic_base_url_must_be_an_http_url(bad: str) -> None:
+    with pytest.raises(ValueError, match="ANTHROPIC_BASE_URL"):
+        Settings.from_env(environ={"ANTHROPIC_BASE_URL": bad})
+
+
+def test_env_example_lists_every_variable_the_settings_read() -> None:
+    """Regression guard for the rule that .env.example stays current."""
+    source = (REPO_ROOT / "litsearch" / "config.py").read_text(encoding="utf-8")
+    read = set(re.findall(r'_(?:opt|float)\(merged, "([A-Z0-9_]+)"', source))
+    assert "ANTHROPIC_BASE_URL" in read  # the pattern really finds variables
+    documented = set(
+        parse_env_file((REPO_ROOT / ".env.example").read_text(encoding="utf-8"))
+    )
+    assert read - documented == set(), f"missing from .env.example: {read - documented}"

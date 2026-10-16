@@ -222,20 +222,23 @@ litsearch report RUN_ID                # regenerate the report from cache, no mo
 litsearch queries RUN_ID               # export / view queries and their effective hit counts
 ```
 
-`.env.example` contains at least:
+`.env.example` lists every variable the program reads (a test enforces this):
 
 ```
-ANTHROPIC_API_KEY=
-L1_MODEL=                         # cheap model for L1 scoring; verify the ID against the official model list
-QUERY_MODEL=                      # stronger model for query generation; verify the ID against the official model list
 CONTACT_EMAIL=                    # used in the User-Agent and the OpenAlex mailto parameter (identifier only)
 OPENALEX_API_KEY=                 # recommended; raises the daily quota tenfold
 S2_API_KEY=                       # optional
-GS_MIN_DELAY=10
-GS_MAX_DELAY=30
+ANTHROPIC_API_KEY=                # the key of the API or of the relay in use
+ANTHROPIC_BASE_URL=               # optional; base URL of an Anthropic-compatible relay (empty = official API)
+L1_MODEL=                         # cheap model for L1 scoring; names depend on the API/relay, verify against its model list
+QUERY_MODEL=                      # stronger model for query generation; same note
+DATA_DIR=                         # default ./data
 HTTPS_PROXY=
-DATA_DIR=./data
+GS_MIN_DELAY=                     # default 10
+GS_MAX_DELAY=                     # default 30
 ```
+
+The model client (Phase 1e) is built from `ANTHROPIC_API_KEY` and `ANTHROPIC_BASE_URL`; model IDs are never hard-coded, because an API relay may expose different model names.
 
 ## 10. Tech stack and layout
 

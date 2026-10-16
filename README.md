@@ -117,7 +117,7 @@ Raw responses are written to `spikes/samples/` (gitignored). Please keep the req
 
 ## Configuration
 
-Everything tunable goes through environment variables or CLI flags; nothing is hard-coded. See [`.env.example`](.env.example): `CONTACT_EMAIL` (identifier in the `User-Agent` header and the OpenAlex `mailto` parameter, optional), `OPENALEX_API_KEY` (recommended, free), `S2_API_KEY` (optional), `DATA_DIR` (default `./data`). Never commit `.env`.
+Everything tunable goes through environment variables or CLI flags; nothing is hard-coded. See [`.env.example`](.env.example), which lists every variable the program reads: `CONTACT_EMAIL` (identifier in the `User-Agent` header and the OpenAlex `mailto` parameter, optional), `OPENALEX_API_KEY` (recommended, free), `S2_API_KEY` (optional), `DATA_DIR` (default `./data`), `HTTPS_PROXY`, and for the model-based steps of later phases `ANTHROPIC_API_KEY`, **`ANTHROPIC_BASE_URL`** (set it to use an Anthropic-compatible API relay instead of the official API) and the model names `L1_MODEL` / `QUERY_MODEL` (use the names your API or relay offers). Searching needs none of the Anthropic settings. Never commit `.env`.
 
 ## Scope and etiquette
 

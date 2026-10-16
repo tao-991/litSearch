@@ -71,6 +71,7 @@ class Settings:
     openalex_api_key: str | None = field(default=None, repr=False)
     s2_api_key: str | None = field(default=None, repr=False)
     anthropic_api_key: str | None = field(default=None, repr=False)
+    anthropic_base_url: str | None = field(default=None, repr=False)
     l1_model: str | None = None
     query_model: str | None = None
     gs_min_delay: float = DEFAULT_GS_MIN_DELAY
@@ -102,12 +103,16 @@ class Settings:
                 "GS_MIN_DELAY must be >= 0 and <= GS_MAX_DELAY "
                 f"(got {gs_min} and {gs_max})"
             )
+        base_url = _opt(merged, "ANTHROPIC_BASE_URL")
+        if base_url and not base_url.lower().startswith(("http://", "https://")):
+            raise ValueError("ANTHROPIC_BASE_URL must start with http:// or https://")
         data_dir = _opt(merged, "DATA_DIR")
         return cls(
             contact_email=_opt(merged, "CONTACT_EMAIL"),
             openalex_api_key=_opt(merged, "OPENALEX_API_KEY"),
             s2_api_key=_opt(merged, "S2_API_KEY"),
             anthropic_api_key=_opt(merged, "ANTHROPIC_API_KEY"),
+            anthropic_base_url=base_url,
             l1_model=_opt(merged, "L1_MODEL"),
             query_model=_opt(merged, "QUERY_MODEL"),
             gs_min_delay=gs_min,
