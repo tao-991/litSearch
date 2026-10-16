@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import sqlite3
 import time
+from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 from typing import Annotated, Any
@@ -40,6 +41,13 @@ from litsearch.pipeline.runner import (
     execute_run,
     load_params,
     run_name,
+)
+from litsearch.pipeline.score import (
+    DEFAULT_BATCH_SIZE,
+    ScoreResult,
+    estimate_scoring,
+    plan_scoring,
+    score_run,
 )
 from litsearch.pipeline.store import done_fetch_keys, load_queries
 from litsearch.profiles import DEFAULT_PROFILE, PROFILES
@@ -171,6 +179,161 @@ def _result_lines(summary: export.RunSummary, result: RetrievalResult) -> list[s
     return lines
 
 
+@dataclass(frozen=True, slots=True)
+class ScoringOptions:
+    """How (and whether) papers are scored after the search."""
+
+    enabled: bool
+    off_reason: str | None
+    model: str
+    max_scored: int
+    max_llm_calls: int | None
+    batch_size: int
+    min_score: int
+    maybe_score: int
+
+
+def _scoring_options(
+    settings: Settings,
+    profile: str,
+    *,
+    no_score: bool,
+    max_scored: int | None,
+    max_llm_calls: int | None,
+    batch_size: int,
+    min_score: int,
+    maybe_score: int,
+) -> ScoringOptions:
+    if not 1 <= batch_size <= 30:
+        raise _fail("--score-batch must be between 1 and 30")
+    if not 0 <= maybe_score <= min_score <= 5:
+        raise _fail("--min-score and --maybe-score must satisfy 0 <= maybe <= min <= 5")
+    if max_scored is not None and max_scored < 1:
+        raise _fail("--max-scored must be at least 1")
+    if max_llm_calls is not None and max_llm_calls < 0:
+        raise _fail("--max-llm-calls must not be negative")
+    reason = None
+    if no_score:
+        reason = "--no-score"
+    elif not settings.llm_api_key or not settings.l1_model:
+        reason = "LLM_API_KEY or L1_MODEL is empty in .env"
+    chosen = max_scored if max_scored is not None else PROFILES[profile].max_scored
+    return ScoringOptions(
+        enabled=reason is None,
+        off_reason=reason,
+        model=settings.l1_model or "",
+        max_scored=chosen,
+        max_llm_calls=max_llm_calls,
+        batch_size=batch_size,
+        min_score=min_score,
+        maybe_score=maybe_score,
+    )
+
+
+def _scoring_plan_lines(
+    opts: ScoringOptions, n_upper_bound: int, already: tuple[int, int] | None
+) -> list[str]:
+    """Plan lines for scoring; ``already`` = (to score, cached) for an existing run."""
+    if not opts.enabled:
+        return [
+            f"Scoring: skipped ({opts.off_reason}); the list will not be ranked by "
+            "relevance"
+        ]
+    n = already[0] if already else min(opts.max_scored, n_upper_bound)
+    calls, tokens_in, tokens_out = estimate_scoring(n, opts.batch_size)
+    if opts.max_llm_calls is not None:
+        calls = min(calls, opts.max_llm_calls)
+    cached = f", {already[1]} already scored" if already and already[1] else ""
+    return [
+        f"Scoring: up to {n} papers (best ranked first{cached}) in about {calls} model "
+        f"calls with {opts.model}; roughly {tokens_in} tokens in / {tokens_out} out",
+        "          (what that costs depends on your API; the model only reads titles "
+        "and abstracts)",
+    ]
+
+
+def _score_lines(result: ScoreResult, opts: ScoringOptions, run_id: int) -> list[str]:
+    lines = [
+        f"Scoring: {result.n_scored} papers scored by the model, {result.n_cached} "
+        f"already scored before, {result.calls} model calls, "
+        f"{result.input_tokens} tokens in / {result.output_tokens} out"
+    ]
+    if result.n_over_limit:
+        lines.append(
+            f"  {result.n_over_limit} more papers were found than the limit of "
+            f"{opts.max_scored} allows; they are not scored (see --max-scored)."
+        )
+    if result.n_failed:
+        lines.append(
+            f"  {result.n_failed} papers got no usable score from the model; try "
+            f"again with: litsearch score {run_id}"
+        )
+    if result.n_cut_off:
+        lines.append(
+            f"  {result.n_cut_off} of {result.calls} model replies were cut off by the "
+            "output limit. A model that spends its output on hidden reasoning does "
+            "this; use a model without reasoning as L1_MODEL (see check-llm)."
+        )
+    if result.stopped == "calls":
+        lines.append(f"  Stopped at the limit of {opts.max_llm_calls} model calls.")
+    elif result.stopped == "time":
+        lines.append("  Stopped at the time limit.")
+    elif result.stopped == "error":
+        lines.append(f"  Stopped because of a model error ({result.error}).")
+    if result.stopped:
+        lines.append(f"  Continue with: litsearch score {run_id}")
+    return lines
+
+
+async def _score(
+    conn: sqlite3.Connection,
+    settings: Settings,
+    run_id: int,
+    opts: ScoringOptions,
+    deadline: float | None,
+) -> ScoreResult:
+    llm = build_llm(settings)
+    try:
+        return await score_run(
+            conn,
+            llm,
+            run_id,
+            model=opts.model,
+            language=settings.summary_language,
+            max_scored=opts.max_scored,
+            max_llm_calls=opts.max_llm_calls,
+            batch_size=opts.batch_size,
+            deadline=deadline,
+            progress=typer.echo,
+        )
+    finally:
+        await llm.aclose()
+
+
+def _write_outputs(
+    conn: sqlite3.Connection,
+    run_id: int,
+    out_dir: Path,
+    *,
+    top: int,
+    min_score: int,
+    maybe_score: int,
+) -> tuple[export.RunSummary, Path]:
+    folder = out_dir / run_name(conn, run_id)
+    candidates = export.load_candidates(conn, run_id)
+    summary = export.load_summary(conn, run_id)
+    export.write_csv(candidates, folder / "candidates.csv")
+    export.write_markdown(
+        candidates,
+        summary,
+        folder / "candidates.md",
+        top=top,
+        min_score=min_score,
+        maybe_score=maybe_score,
+    )
+    return summary, folder
+
+
 async def _session(
     conn: sqlite3.Connection,
     settings: Settings,
@@ -182,7 +345,8 @@ async def _session(
     yes: bool,
     max_minutes: float | None,
     name: str | None,
-) -> tuple[int, RetrievalResult] | None:
+    scoring: ScoringOptions,
+) -> tuple[int, RetrievalResult, ScoreResult | None] | None:
     """Show the estimate, ask for confirmation, then run. ``None`` after a dry run."""
     plan = plan_fetches(plan_texts, params.sources, params.openalex_mode)
     done = done_fetch_keys(conn, run_id) if run_id is not None else set()
@@ -198,6 +362,18 @@ async def _session(
                 quota = None  # the estimate is still useful without it
         for line in _plan_lines(params, est, quota, resuming=run_id is not None):
             typer.echo(line)
+        already = None
+        if run_id is not None and scoring.enabled:
+            sp = plan_scoring(
+                conn,
+                run_id,
+                model=scoring.model,
+                language=settings.summary_language,
+                max_scored=scoring.max_scored,
+            )
+            already = (sp.n_to_score, sp.n_cached)
+        for line in _scoring_plan_lines(scoring, est.max_records, already):
+            typer.echo(line)
         if dry_run:
             typer.echo("Dry run: nothing was fetched and nothing was stored.")
             return None
@@ -209,6 +385,7 @@ async def _session(
                 run_id = create_run(conn, params, name)
             except sqlite3.IntegrityError:
                 raise _fail(f"a run named {name!r} already exists") from None
+        started = time.monotonic()
         result = await execute_run(
             conn,
             run_id,
@@ -216,7 +393,12 @@ async def _session(
             max_minutes=max_minutes,
             progress=typer.echo,
         )
-        return run_id, result
+        score_result = None
+        if scoring.enabled:
+            limit = max_minutes if max_minutes is not None else params.max_minutes
+            deadline = started + limit * 60 if limit else None
+            score_result = await _score(conn, settings, run_id, scoring, deadline)
+        return run_id, result, score_result
 
 
 def _open_db(settings: Settings, db_path: Path | None) -> sqlite3.Connection:
@@ -357,7 +539,26 @@ def run(
             help="Stop after this many minutes, 0 for no limit (profile default)."
         ),
     ] = None,
-    top: Annotated[int, typer.Option(help="Candidates listed in candidates.md.")] = 50,
+    top: Annotated[int, typer.Option(help="Papers listed in the main list.")] = 50,
+    no_score: Annotated[
+        bool, typer.Option("--no-score", help="Do not score papers with the model.")
+    ] = False,
+    max_scored: Annotated[
+        int | None,
+        typer.Option(help="Most papers the model scores (profile default)."),
+    ] = None,
+    max_llm_calls: Annotated[
+        int | None, typer.Option(help="Most model calls for scoring.")
+    ] = None,
+    score_batch: Annotated[
+        int, typer.Option(help="Papers per scoring call (1 to 30).")
+    ] = DEFAULT_BATCH_SIZE,
+    min_score: Annotated[
+        int, typer.Option(help="Score (0 to 5) from which a paper is in the main list.")
+    ] = export.DEFAULT_MIN_SCORE,
+    maybe_score: Annotated[
+        int, typer.Option(help="Score from which a paper is 'possibly relevant'.")
+    ] = export.DEFAULT_MAYBE_SCORE,
     dry_run: Annotated[
         bool, typer.Option("--dry-run", help="Show what would be done; fetch nothing.")
     ] = False,
@@ -459,6 +660,16 @@ def run(
         conn = db.connect(":memory:")
         db.init_schema(conn)
 
+    scoring = _scoring_options(
+        settings,
+        params.profile,
+        no_score=no_score,
+        max_scored=max_scored,
+        max_llm_calls=max_llm_calls,
+        batch_size=score_batch,
+        min_score=min_score,
+        maybe_score=maybe_score,
+    )
     try:
         outcome = asyncio.run(
             _session(
@@ -471,6 +682,7 @@ def run(
                 yes=yes,
                 max_minutes=max_minutes if resume is not None else None,
                 name=name,
+                scoring=scoring,
             )
         )
     except KeyboardInterrupt:
@@ -481,15 +693,21 @@ def run(
     if outcome is None:
         return
 
-    run_id, result = outcome
-    folder = out_dir / run_name(conn, run_id)
-    candidates = export.load_candidates(conn, run_id)
-    summary = export.load_summary(conn, run_id)
-    export.write_csv(candidates, folder / "candidates.csv")
-    export.write_markdown(candidates, summary, folder / "candidates.md", top=top)
+    run_id, result, score_result = outcome
+    summary, folder = _write_outputs(
+        conn,
+        run_id,
+        out_dir,
+        top=top,
+        min_score=scoring.min_score,
+        maybe_score=scoring.maybe_score,
+    )
     typer.echo("")
     for line in _result_lines(summary, result):
         typer.echo(line)
+    if score_result is not None:
+        for line in _score_lines(score_result, scoring, run_id):
+            typer.echo(line)
     typer.echo(f"Files: {folder / 'candidates.csv'} and {folder / 'candidates.md'}")
 
 
@@ -617,6 +835,104 @@ def queries(
 
 
 @app.command()
+def score(
+    run_id: Annotated[int, typer.Argument(help="Id of the run to score.")],
+    max_scored: Annotated[
+        int | None,
+        typer.Option(help="Most papers the model scores (the run's profile default)."),
+    ] = None,
+    max_llm_calls: Annotated[
+        int | None, typer.Option(help="Most model calls for scoring.")
+    ] = None,
+    score_batch: Annotated[
+        int, typer.Option(help="Papers per scoring call (1 to 30).")
+    ] = DEFAULT_BATCH_SIZE,
+    min_score: Annotated[
+        int, typer.Option(help="Score (0 to 5) from which a paper is in the main list.")
+    ] = export.DEFAULT_MIN_SCORE,
+    maybe_score: Annotated[
+        int, typer.Option(help="Score from which a paper is 'possibly relevant'.")
+    ] = export.DEFAULT_MAYBE_SCORE,
+    top: Annotated[int, typer.Option(help="Papers listed in the main list.")] = 50,
+    yes: Annotated[
+        bool, typer.Option("--yes", help="Do not ask for confirmation.")
+    ] = False,
+    db_path: Annotated[
+        Path | None,
+        typer.Option("--db", help="SQLite file (default: <DATA_DIR>/litsearch.db)."),
+    ] = None,
+    out_dir: Annotated[Path, typer.Option(help="Where results are written.")] = Path(
+        "out"
+    ),
+) -> None:
+    """Score the papers of a run that are not scored yet and rewrite its lists.
+
+    Scores are cached, so this also rewrites the lists with other thresholds at no cost.
+    """
+    settings = Settings.from_env(env_file=Path(".env"))
+    database = db_path or settings.data_dir / "litsearch.db"
+    if not database.exists():
+        raise _fail(f"no database at {database}", code=1)
+    conn = db.connect(database)
+    db.init_schema(conn)
+    try:
+        params = load_params(conn, run_id)
+    except LookupError as exc:
+        raise _fail(str(exc), code=1) from None
+    opts = _scoring_options(
+        settings,
+        params.profile,
+        no_score=False,
+        max_scored=max_scored,
+        max_llm_calls=max_llm_calls,
+        batch_size=score_batch,
+        min_score=min_score,
+        maybe_score=maybe_score,
+    )
+    if not opts.enabled:
+        raise _fail(f"cannot score: {opts.off_reason}")
+    plan = plan_scoring(
+        conn,
+        run_id,
+        model=opts.model,
+        language=settings.summary_language,
+        max_scored=opts.max_scored,
+    )
+    result: ScoreResult | None = None
+    if plan.n_to_score:
+        for line in _scoring_plan_lines(
+            opts, plan.n_to_score, (plan.n_to_score, plan.n_cached)
+        ):
+            typer.echo(line)
+        if not yes and not typer.confirm("Proceed?", default=False):
+            typer.echo("Aborted. Nothing was scored.")
+            raise typer.Exit(1)
+        try:
+            result = _model_call(_score(conn, settings, run_id, opts, None))
+        except KeyboardInterrupt:
+            typer.echo("\nInterrupted. What was scored is saved.", err=True)
+            raise typer.Exit(130) from None
+    else:
+        typer.echo(
+            f"Nothing to score: {plan.n_cached} of the first {plan.n_considered} "
+            "papers already have a score. Rewriting the lists."
+        )
+    summary, folder = _write_outputs(
+        conn,
+        run_id,
+        out_dir,
+        top=top,
+        min_score=opts.min_score,
+        maybe_score=opts.maybe_score,
+    )
+    if result is not None:
+        for line in _score_lines(result, opts, run_id):
+            typer.echo(line)
+    typer.echo(f"{summary.n_scored} of {summary.n_papers} papers have a score.")
+    typer.echo(f"Files: {folder / 'candidates.csv'} and {folder / 'candidates.md'}")
+
+
+@app.command()
 def status(
     run_id: Annotated[
         int | None, typer.Argument(help="Run id (default: the latest run).")
@@ -643,6 +959,7 @@ def status(
     typer.echo(f"{summary.name} (id {summary.run_id}): {summary.status}")
     typer.echo(f"Started {summary.started_at}, finished {summary.finished_at or '-'}")
     typer.echo(f"{_queries(summary.n_queries)}, {summary.n_papers} distinct papers")
+    typer.echo(f"Scored by the model: {summary.n_scored} of {summary.n_papers} papers")
     typer.echo("Sources:")
     for s in summary.sources:
         note = f"  ({s.error})" if s.error else ""

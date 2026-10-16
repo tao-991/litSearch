@@ -4,7 +4,7 @@ Deep, multi-source, auditable literature search for a research project.
 
 Asking a chat assistant to search the literature tends to end in rate limits, incomplete results, two or three rounds of searching, and no way to tell how much was covered. Lit Search is meant to fix that: give it a project description (plus optional keywords and seed papers) and it runs many queries across several scholarly sources, screens the results through a "reading funnel", and writes a ranked report. The report also records which queries were used, which sources succeeded or failed, and how many new relevant papers each round added, so coverage can be checked rather than guessed.
 
-> **Status: early. Phase 0 (API measurement) is done; Phase 1 (the application) is in progress.** You can already describe your research in plain words and/or give PDFs of papers you like: a model writes a project brief for you to edit, then writes a few focused search queries (it decides how many), and `litsearch run` searches OpenAlex, Semantic Scholar and arXiv, merges duplicates, stores everything in a local SQLite file and writes a candidate list (CSV and Markdown). What does **not** exist yet: scoring papers with a model, citation snowballing and the final report. The candidate list is therefore not yet ranked by relevance to your project, only by how many queries found each paper.
+> **Status: early. Phase 0 (API measurement) is done; Phase 1 (the application) is nearly complete.** You can describe your research in plain words and/or give PDFs of papers you like: a model writes a project brief for you to edit, then a few focused search queries (it decides how many); `litsearch run` searches OpenAlex, Semantic Scholar and arXiv, merges duplicates, stores everything in a local SQLite file, lets a cheap model score each paper from 0 to 5 against your queries (with a short reason and summary in your language) and writes a ranked list (Markdown and CSV). What does **not** exist yet: citation snowballing, the final report layout and the optional Google Scholar round (phase 1f).
 
 Phase 1 progress:
 
@@ -12,7 +12,7 @@ Phase 1 progress:
 - [x] **1b** Collectors for OpenAlex, Semantic Scholar and arXiv (offline-tested; smoke-tested against the real services)
 - [x] **1c** De-duplication (merges the same paper found by different sources or queries)
 - [x] **1d** Retrieval pipeline: `litsearch run` / `litsearch status`, `--dry-run` estimate, confirmation, `--resume`, time limit, profiles
-- [ ] **1e** Model access, query generation from free text or PDFs, L1 scoring. *Done:* a model client that speaks both the Anthropic and the OpenAI chat format (Claude, GPT, Gemini, DeepSeek, ... through one key and base URL), `litsearch check-llm`, `litsearch brief` (your words become an editable project brief) and `litsearch queries` / `litsearch run --project` (the model writes the queries and decides how many). `litsearch brief --pdf` (the opening pages of PDFs you are interested in are read locally as text and used for the brief). *Still to do:* scoring papers.
+- [x] **1e** Model access (Anthropic and OpenAI chat formats through one key and base URL, `litsearch check-llm`), `litsearch brief` (your words and PDFs become an editable brief), `litsearch queries` (the model writes the queries and decides how many), L1 scoring of title and abstract against the queries (`litsearch score`)
 - [ ] **1f** Snowballing, report, full command line, optional Google Scholar round
 
 ## Quick start
@@ -34,14 +34,16 @@ uv run litsearch brief --about "I want to study how a coding agent can help engi
 uv run litsearch queries --project project.md
 #    -> edit queries.txt if you like
 
-# 3. see what the search would cost, then run it
+# 3. see what the search and the scoring would cost, then run it
 uv run litsearch run --queries-file queries.txt --dry-run
 uv run litsearch run --queries-file queries.txt
 
 # 4. look at the result
-uv run litsearch status        # sources, queries, papers found
-open out/run-0001/candidates.md      # or candidates.csv (all papers, with abstracts)
+uv run litsearch status        # sources, queries, papers found and scored
+open out/run-0001/candidates.md      # ranked list; candidates.csv has every paper with its abstract
 ```
+
+Papers are scored by the model after the search (use `--no-score` to skip it; `litsearch score RUN_ID` scores later and can rewrite the lists with other thresholds at no cost). The score is relative to your queries: a paper is relevant if it addresses at least one of them. Scores 4 and 5 form the main list, 3 is "possibly relevant" (collapsed), lower scores are listed with their reason. Summaries are based on the title and abstract only. Small models score generously, so read the list as a screening aid.
 
 `litsearch run --project project.md` does step 2 and 3 in one go (the queries are cached, so a repeat costs nothing). You can also skip the model and give queries yourself: `litsearch run -q "first query" -q "second query"`.
 
@@ -54,7 +56,7 @@ Results are written to `out/<run-name>/` and to a SQLite file at `data/litsearch
 1. **Generate queries.** You describe your research interest in plain language and/or give PDFs of papers you like (their opening pages are read locally as text); a model writes a project brief that you can edit, then a few focused queries (an established term for the core concept, plus a sub-question only if the brief names one) and decides itself how many are needed. You can edit the queries and re-run. *(done, except PDF input)*
 2. **Retrieve from several sources.** OpenAlex (titles and abstracts by default), Semantic Scholar and arXiv; Google Scholar as an optional, low-frequency supplement. *(done, except Google Scholar)*
 3. **De-duplicate** by DOI, arXiv ID and fuzzy title match (preprint and published versions are merged). *(done)*
-4. **Screen (L1).** A cheap model reads title and abstract in batches and returns a score, a reason, a 3-sentence summary and tags. Borderline papers go to a "possibly relevant" bucket instead of being dropped.
+4. **Screen (L1).** A cheap model reads title and abstract in batches and returns a score from 0 to 5 against your queries, a reason, a 3-sentence summary and tags. Borderline papers go to a "possibly relevant" bucket instead of being dropped. *(done)*
 5. **Snowball.** Take the best papers, fetch their references and citing papers, and repeat for a few rounds until new relevant results dry up.
 6. **Report.** Markdown report, CSV, and a full run record. Links, DOIs, authors and years come only from the data sources; the model never writes them.
 
@@ -131,7 +133,7 @@ Raw responses are written to `spikes/samples/` (gitignored). Please keep the req
 Everything tunable goes through environment variables or CLI flags; nothing is hard-coded. See [`.env.example`](.env.example), which lists every variable the program reads (a test keeps it in sync):
 
 - Data sources: `CONTACT_EMAIL` (identifier in the `User-Agent` header and the OpenAlex `mailto` parameter, optional), `OPENALEX_API_KEY` (recommended, free), `S2_API_KEY` (optional), `HTTPS_PROXY`, `DATA_DIR` (default `./data`).
-- Models (needed for `brief`, `queries` and later the scoring; searching with queries you write yourself needs none of them): `LLM_API_KEY`, `LLM_BASE_URL` (an API relay, with or without `/v1`; empty means the official APIs), `L1_MODEL` (cheap model that scores papers) and `QUERY_MODEL` (stronger model that writes the brief and the queries), exactly as your API or relay names them, and `SUMMARY_LANGUAGE` (the language of what the model writes for you to read; default Chinese; search queries are always English). With the default `LLM_API_FORMAT=auto`, model names starting with `claude` are called in the Anthropic message format and all others (`gpt-*`, `gemini-*`, `deepseek-*`, ...) in the OpenAI chat format, so one key and one base URL can serve both. `ANTHROPIC_API_KEY` / `ANTHROPIC_BASE_URL` still work as older names. Run `litsearch check-llm` to test the settings and, if a model is rejected, to see which names the endpoint offers.
+- Models (needed for `brief`, `queries` and later the scoring; searching with queries you write yourself needs none of them): `LLM_API_KEY`, `LLM_BASE_URL` (an API relay, with or without `/v1`; empty means the official APIs), `L1_MODEL` (cheap model that scores papers; pick one **without** long hidden reasoning such as `gpt-4.1-nano`: a reasoning model was about ten times slower in tests and lost half of the scores) and `QUERY_MODEL` (stronger model that writes the brief and the queries), exactly as your API or relay names them, and `SUMMARY_LANGUAGE` (the language of what the model writes for you to read; default Chinese; search queries are always English). With the default `LLM_API_FORMAT=auto`, model names starting with `claude` are called in the Anthropic message format and all others (`gpt-*`, `gemini-*`, `deepseek-*`, ...) in the OpenAI chat format, so one key and one base URL can serve both. `ANTHROPIC_API_KEY` / `ANTHROPIC_BASE_URL` still work as older names. Run `litsearch check-llm` to test the settings and, if a model is rejected, to see which names the endpoint offers.
 
 Never commit `.env`.
 

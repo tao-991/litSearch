@@ -338,6 +338,7 @@ def test_status_describes_the_latest_or_a_chosen_run(
     assert result.exit_code == 0, result.output
     assert "first (id 1): completed" in result.output
     assert "2 queries, 2 distinct papers" in result.output
+    assert "Scored by the model: 0 of 2 papers" in result.output
     assert "openalex" in result.output and "arxiv" in result.output
     assert "'agents review': arxiv 1, openalex 2" in result.output
     chosen = runner.invoke(app, ["status", "1", "--db", "data/lit.db"])
@@ -877,3 +878,294 @@ def test_an_unusable_pdf_stops_before_any_model_call(
     assert "x.pdf" in result.output
     assert llm.calls == []
     assert not (workdir / "project.md").exists()
+
+
+# ------------------------------------------------------------------------- scoring
+
+
+def score_reply(*scores: int) -> str:
+    return json.dumps(
+        {
+            "results": [
+                {
+                    "id": i,
+                    "score": s,
+                    "query": 1,
+                    "reason": f"reason {i}",
+                    "summary": f"Summary {i}. Two. Three.",
+                    "tags": ["tag"],
+                }
+                for i, s in enumerate(scores, start=1)
+            ]
+        }
+    )
+
+
+def scoring_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    llm_ready(monkeypatch, L1_MODEL="model-l1")
+
+
+SEARCH = [*BASE, "-q", "agents review", "-q", "trust"]
+
+
+def test_the_dry_run_estimates_scoring_or_says_it_is_skipped(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    use_fakes(monkeypatch, **two_sources())
+    skipped = runner.invoke(app, [*SEARCH, "--dry-run"])
+    assert (
+        "Scoring: skipped (LLM_API_KEY or L1_MODEL is empty in .env)" in skipped.output
+    )
+    assert "will not be ranked by relevance" in skipped.output
+    off = runner.invoke(app, [*SEARCH, "--dry-run", "--no-score"])
+    assert "Scoring: skipped (--no-score)" in off.output
+
+    scoring_env(monkeypatch)
+    planned = runner.invoke(app, [*SEARCH, "--dry-run"])
+    assert planned.exit_code == 0, planned.output
+    # 2 queries x (openalex 15 + arxiv 15) = 60 results at most (ceiling 150)
+    assert (
+        "Scoring: up to 60 papers (best ranked first) in about 6 model calls"
+        in planned.output
+    )
+    assert "with model-l1" in planned.output
+    assert "tokens in" in planned.output
+    limited = runner.invoke(
+        app,
+        [
+            *SEARCH,
+            "--dry-run",
+            "--max-scored",
+            "20",
+            "--max-llm-calls",
+            "1",
+            "--score-batch",
+            "5",
+        ],
+    )
+    assert (
+        "up to 20 papers" in limited.output
+        and "in about 1 model calls" in limited.output
+    )
+
+
+def test_a_run_scores_the_papers_and_ranks_the_lists(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    scoring_env(monkeypatch)
+    use_fakes(monkeypatch, **two_sources())
+    # best ranked first: "Trust In Automation" (two queries), then the agents paper
+    llm = use_llm(monkeypatch, FakeLLM([score_reply(5, 3)]))
+    result = runner.invoke(app, [*SEARCH, "--yes", "--name", "scored"])
+    assert result.exit_code == 0, result.output
+    assert (
+        "Scoring: 2 papers scored by the model, 0 already scored before, 1 model calls"
+        in result.output
+    )
+    assert "100 tokens in / 50 out" in result.output
+    assert "Trust In Automation" in llm.calls[0]["user"]
+    assert llm.calls[0]["model"] == "model-l1"
+    assert (
+        "1. agents review" in llm.calls[0]["user"]
+        and "2. trust" in llm.calls[0]["user"]
+    )
+
+    markdown = (workdir / "out" / "scored" / "candidates.md").read_text(
+        encoding="utf-8"
+    )
+    assert "Scored 2 of 2 papers from 0 to 5" in markdown
+    # these fake papers have no abstract: judged by title they are capped at 4
+    assert "### 1. Trust In Automation  `4/5`" in markdown
+    assert "based on the title only, no abstract" in markdown
+    assert "## Possibly relevant (score 3)" in markdown
+    rows = list(
+        csv.DictReader(
+            (workdir / "out" / "scored" / "candidates.csv").open(encoding="utf-8")
+        )
+    )
+    assert [(r["title"], r["score"]) for r in rows] == [
+        ("Trust In Automation", "4"),
+        ("Agents That Review Code", "3"),
+    ]
+
+
+def test_the_scoring_limit_is_reported(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    scoring_env(monkeypatch)
+    use_fakes(monkeypatch, **two_sources())
+    use_llm(monkeypatch, FakeLLM([score_reply(4)]))
+    result = runner.invoke(app, [*SEARCH, "--yes", "--max-scored", "1"])
+    assert "1 papers scored by the model" in result.output
+    assert "1 more papers were found than the limit of 1 allows" in result.output
+    assert "## Not scored (1)" in (
+        workdir / "out" / "run-0001" / "candidates.md"
+    ).read_text(encoding="utf-8")
+
+
+def test_no_score_never_touches_the_model(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    scoring_env(monkeypatch)
+    use_fakes(monkeypatch, **two_sources())
+    llm = use_llm(monkeypatch, FakeLLM([]))
+    result = runner.invoke(app, [*SEARCH, "--yes", "--no-score"])
+    assert result.exit_code == 0, result.output
+    assert llm.calls == []
+    assert "not scored" in (workdir / "out" / "run-0001" / "candidates.md").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_a_scoring_failure_keeps_the_search_and_says_how_to_continue(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    scoring_env(monkeypatch)
+    use_fakes(monkeypatch, **two_sources())
+    use_llm(monkeypatch, FakeLLM([LLMError("rate_limited", "slow down")]))
+    result = runner.invoke(app, [*SEARCH, "--yes"])
+    assert result.exit_code == 0, result.output
+    assert "Run run-0001 completed." in result.output
+    assert "Stopped because of a model error (rate_limited: slow down)" in result.output
+    assert "Continue with: litsearch score 1" in result.output
+    assert "Papers: 2 distinct" in result.output
+
+
+def test_score_adds_scores_to_a_run_and_can_be_repeated_for_free(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    scoring_env(monkeypatch)
+    use_fakes(monkeypatch, **two_sources())
+    llm = use_llm(monkeypatch, FakeLLM([score_reply(5, 2)]))
+    assert runner.invoke(app, [*SEARCH, "--yes", "--no-score"]).exit_code == 0
+
+    first = runner.invoke(
+        app, ["score", "1", "--db", "data/lit.db", "--out-dir", "out", "--yes"]
+    )
+    assert first.exit_code == 0, first.output
+    assert "Scoring: up to 2 papers" in first.output
+    assert "2 papers scored by the model" in first.output
+    assert "2 of 2 papers have a score." in first.output
+    assert len(llm.calls) == 1
+
+    again = runner.invoke(
+        app,
+        [
+            "score",
+            "1",
+            "--db",
+            "data/lit.db",
+            "--out-dir",
+            "out",
+            "--min-score",
+            "5",
+            "--maybe-score",
+            "2",
+        ],
+    )
+    assert again.exit_code == 0, again.output
+    assert (
+        "Nothing to score: 2 of the first 2 papers already have a score."
+        in again.output
+    )
+    assert len(llm.calls) == 1  # no second model call
+    markdown = (workdir / "out" / "run-0001" / "candidates.md").read_text(
+        encoding="utf-8"
+    )
+    assert "## Relevant (score 5 or more)" in markdown
+    assert "## Possibly relevant (score 2)" in markdown
+
+
+def test_score_asks_for_confirmation(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    scoring_env(monkeypatch)
+    use_fakes(monkeypatch, **two_sources())
+    llm = use_llm(monkeypatch, FakeLLM([score_reply(4, 4)]))
+    runner.invoke(app, [*SEARCH, "--yes", "--no-score"])
+    declined = runner.invoke(app, ["score", "1", "--db", "data/lit.db"], input="n\n")
+    assert declined.exit_code == 1 and "Aborted. Nothing was scored." in declined.output
+    assert llm.calls == []
+    accepted = runner.invoke(
+        app, ["score", "1", "--db", "data/lit.db", "--out-dir", "out"], input="y\n"
+    )
+    assert accepted.exit_code == 0, accepted.output
+    assert len(llm.calls) == 1
+
+
+def test_score_checks_its_inputs(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    no_db = runner.invoke(app, ["score", "1", "--db", "data/none.db"])
+    assert no_db.exit_code == 1 and "no database at" in no_db.output
+    use_fakes(monkeypatch, **two_sources())
+    runner.invoke(app, [*SEARCH, "--yes", "--no-score"])
+    unknown = runner.invoke(app, ["score", "9", "--db", "data/lit.db"])
+    assert unknown.exit_code == 1 and "no run with id 9" in unknown.output
+    unconfigured = runner.invoke(app, ["score", "1", "--db", "data/lit.db"])
+    assert unconfigured.exit_code == 2
+    assert (
+        "cannot score: LLM_API_KEY or L1_MODEL is empty in .env" in unconfigured.output
+    )
+
+
+@pytest.mark.parametrize(
+    ("args", "message"),
+    [
+        (["--score-batch", "0"], "--score-batch must be between 1 and 30"),
+        (["--score-batch", "31"], "--score-batch must be between 1 and 30"),
+        (["--min-score", "6"], "--min-score and --maybe-score must satisfy"),
+        (
+            ["--min-score", "2", "--maybe-score", "3"],
+            "--min-score and --maybe-score must satisfy",
+        ),
+        (["--max-scored", "0"], "--max-scored must be at least 1"),
+        (["--max-llm-calls", "-1"], "--max-llm-calls must not be negative"),
+    ],
+)
+def test_scoring_options_are_validated(
+    workdir: Path, args: list[str], message: str
+) -> None:
+    result = runner.invoke(app, ["run", "-q", "a", "--dry-run", "--db", "x.db", *args])
+    assert result.exit_code == 2
+    assert message in result.output
+
+
+def test_resuming_shows_how_much_scoring_is_left(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    scoring_env(monkeypatch)
+    use_fakes(monkeypatch, **two_sources())
+    use_llm(monkeypatch, FakeLLM([score_reply(5)]))
+    runner.invoke(app, [*SEARCH, "--yes", "--max-scored", "1"])
+    dry = runner.invoke(
+        app,
+        [
+            "run",
+            "--resume",
+            "1",
+            "--db",
+            "data/lit.db",
+            "--dry-run",
+            "--max-scored",
+            "2",
+        ],
+    )
+    assert dry.exit_code == 0, dry.output
+    assert "Scoring: up to 1 papers (best ranked first, 1 already scored)" in dry.output
+
+
+def test_cut_off_replies_get_a_hint_about_reasoning_models(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from litsearch.llm import LLMReply
+
+    scoring_env(monkeypatch)
+    use_fakes(monkeypatch, **two_sources())
+    cut = LLMReply("", "model-l1", 100, 6000, "length")
+    use_llm(monkeypatch, FakeLLM([cut, cut]))
+    result = runner.invoke(app, [*SEARCH, "--yes"])
+    assert result.exit_code == 0, result.output
+    assert "2 of 2 model replies were cut off by the output limit" in result.output
+    assert "use a model without reasoning as L1_MODEL" in result.output
+    assert "2 papers got no usable score" in result.output

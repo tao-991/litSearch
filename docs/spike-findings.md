@@ -219,6 +219,23 @@ A relay that lists 146 models (19 Claude, 63 GPT, 16 Gemini, plus DeepSeek, Qwen
 - From that brief the model wrote 6 focused queries (for example "LLM code evaluation stability", "SWE-bench environment setup").
 - `pypdf` logged one "fontTools is required to fully parse the encoding of a CFF Type1 font" warning per font for this ordinary LaTeX paper although the text came out fine; the warnings are silenced.
 
+## 6i. Scoring papers with a model (Phase 1e, 2026-10-16)
+
+A real search with the six queries of the PDF-based brief gave 132 distinct papers; the first 60 (best ranked) were scored by two models on the same prompt, batches of 10.
+
+| | `gpt-4.1-nano` | `deepseek-v4-flash` |
+|---|---|---|
+| papers with a usable score | 60 of 60 | 30 of 60 |
+| model calls | 8 (6 batches + 2 retries) | 11 |
+| wall time | about 60–95 s | 647 s |
+| tokens in / out | 25,412 / 7,763 | 37,633 / 62,579 |
+
+- **`deepseek-v4-flash` is unusable for batch scoring here:** it spent its output on hidden reasoning (about 2,000 output tokens per paper), many replies hit the token limit and were cut off, and half of the papers got no score. The CLI now counts cut-off replies and says so.
+- On the 30 papers both scored, the two models agreed on "relevant (4 or more) or not" for only 16, and were within one point for 17. DeepSeek was more generous (12 papers with 5).
+- The known paper (arXiv 2506.11009) scored 4 with `gpt-4.1-nano` in each of three prompt versions and 5 with DeepSeek, always matched to a sensible query.
+- **First prompt, two problems found and fixed:** papers with a high score but *no matching query* (for example a security benchmark) ranked at the top, so a paper that fits no query is now capped at 2 in the prompt and in the code; and papers that only shared keywords (a keyphrase-generation paper, an LLM-unlearning paper) got 4, so the prompt now says to judge the main contribution rather than keywords (these dropped to 2). Across 60 papers `gpt-4.1-nano` still gave 4 or 5 to a bit over half, so it is a generous screen.
+- Latency of the relay varied from about 6 to 45 seconds per call of 10 papers.
+
 ## 7. Suggested SPEC changes
 
 These were applied in SPEC v0.3:

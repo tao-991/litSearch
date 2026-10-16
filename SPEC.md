@@ -83,11 +83,16 @@ Rules in §5.2. Only de-duplicated papers go to scoring, so the same paper is ne
 
 ### 3.5 L1 scoring and summarization
 
-- Send title + abstract in batches (about 10–20 papers per call, configurable) and require JSON output: `{id, score 0-10, reason, summary (3 sentences), tags[]}`.
-- **Summaries may only be based on the supplied title and abstract**; the report states "abstract-based" explicitly.
-- Lenient threshold: scores in the `maybe` band (configurable, e.g. 4–5) go to a "possibly relevant" bucket rather than being dropped.
-- Cache key: (paper_id, project_hash, prompt_version, model).
-- Papers without an abstract fall back to another source's abstract; if none exists they are scored on title only and flagged "no abstract". Google Scholar snippets are **not** abstracts and must not be used for scoring (see §4).
+The model reads each paper's title and abstract and judges it **against the run's queries, not against the whole project**: the queries are the sub-questions of the review, and a paper counts as relevant if it addresses at least one of them (decided 2026-10-16).
+
+- Papers go to the model in batches (10 by default, `--score-batch`), best ranked first (best position in any source's result list, then number of queries that found the paper), at most `--max-scored` papers per run and `--max-llm-calls` calls. A batch's answer is JSON: `{id, score, query, reason, summary, tags}` per paper. Only these come from the model; links, DOIs, authors and years always come from the data sources.
+- **Scale 0 to 5**: 5 = addresses a query's question directly, 4 = clearly relevant, 3 = partly relevant or tangential, 2 = weakly related (same area, different question), 1 = shares a few words, 0 = unrelated. The model is told to judge the paper's main contribution, not its keywords (the same word in another field is not a match).
+- `query` is the number of the query the paper fits best. **A paper that fits no query is capped at 2**, and a paper judged from its title alone (no abstract) is capped at 4 and labelled "title only".
+- **Groups in the output** (adjustable with `--min-score` and `--maybe-score`): score 4 or 5 = relevant (the main list); 3 = "possibly relevant" (collapsed, not discarded); 0 to 2 = screened out (listed in a table with the reason).
+- The summary is three sentences **based only on the title and abstract**, labelled as such; `reason` is one sentence about why the paper fits or does not fit its best query; both, and the tags, are written in `SUMMARY_LANGUAGE`.
+- Cache: a score is keyed by (paper, **hash of the query set**, hash of title + abstract + language, prompt version, model) in `scores.project_hash` etc., so rescoring costs nothing, and changing the queries, the model or the prompt scores again.
+- If the model's answer misses some papers or is unreadable, those papers are asked for once more; papers that still fail stay unscored and can be retried with `litsearch score RUN_ID`. A model error stops scoring but never loses the search results. Replies cut off by the output limit are counted and reported (a model that spends its output on hidden reasoning does this).
+- Scoring needs a model **without** long hidden reasoning: in Phase 1 tests `deepseek-v4-flash` needed about 11 minutes and half of its 60 papers got no usable score, while `gpt-4.1-nano` scored the same 60 in about one minute (see `docs/spike-findings.md`). Small models are also generous with high scores; treat the list as a screening aid, not a verdict.
 
 ### 3.6 Citation snowballing
 
@@ -146,7 +151,7 @@ RRI (`nhdandz/RRI`, MIT) `src/collectors/base.py` (RateLimiter, CircuitBreaker, 
 - **papers**: id, title, abstract, authors (JSON), year, date, venue, doi, arxiv_id, openalex_id, s2_id, citation_count, links (JSON), oa_pdf_url, state (`candidate`/`scored`/`dismissed`/...). `doi` and `arxiv_id` hold the normalized values of §5.2; each ID column is unique when present, so the database itself rejects duplicates. Papers are shared across runs.
 - **paper_records**: id, paper_id, source, source_id, raw (JSON of the source's record), fetched_at; unique per (source, source_id). Keeps every version and source of a merged paper.
 - **hits**: id, run_id, query_id (NULL for papers found by snowballing), source, paper_id, rank, round.
-- **scores** (the LLM result cache): paper_id, project_hash, input_hash (hash of the title and abstract that were scored), prompt_version, model, score, reason, summary, tags (JSON); the primary key is (paper_id, project_hash, input_hash, prompt_version, model).
+- **scores** (the LLM result cache): paper_id, project_hash (here: the hash of the *query set* the paper was judged against), input_hash (hash of title, abstract and language), prompt_version, model, score (0 to 5), reason, summary, tags (JSON), matched_query, basis (`abstract` or `title`); the primary key is (paper_id, project_hash, input_hash, prompt_version, model).
 - **edges**: src_paper_id, dst_paper_id, kind (`cites`).
 - **llm_cache**: id, task (`brief`, `queries`, later `score`), input_hash, prompt_version, model, output (the model's raw answer), input_tokens, output_tokens, created_at; unique per (task, input_hash, prompt_version, model). The L1 scores keep their own cache in `scores`.
 - **source_runs**: id, run_id, source, status (`ok`/`blocked`/`rate_limited`/`error`/`skipped`), n_requests, n_results, error; unique per (run, source). **This is the key to "failures are visible" and must appear in the report.**
@@ -222,9 +227,11 @@ litsearch check-llm                                                   # test the
 litsearch run --project project.md [--profile quick|standard|deep] [--rounds N] [--per-query N]
               [--sources openalex,s2,arxiv] [--openalex-mode title-abstract|fulltext|both] [--gs]
               [--saturation 3] [--max-scored N] [--max-llm-calls N] [--max-minutes N] [--top N]
+              [--no-score] [--score-batch N] [--min-score N] [--maybe-score N]
               [--since YYYY-MM-DD] [--name NAME] [--db FILE] [--out-dir DIR]
               [--dry-run] [--yes] [--resume RUN_ID]
-litsearch status [RUN_ID]              # what a run did: sources, queries, papers found (default: latest run)
+litsearch score RUN_ID                 # score the papers of a run that have no score yet; also rewrites the lists (free if nothing is new)
+litsearch status [RUN_ID]              # what a run did: sources, queries, papers found, papers scored (default: latest run)
 litsearch report RUN_ID                # regenerate the report from cache, no model calls
 litsearch queries RUN_ID               # export / view queries and their effective hit counts
 ```

@@ -161,7 +161,7 @@ def test_markdown_lists_sources_queries_and_the_top_candidates(
         load_candidates(conn, run_id), load_summary(conn, run_id), path, top=2
     )
     text = path.read_text(encoding="utf-8")
-    assert "not scored yet" in text
+    assert "not scored" in text
     assert "| openalex | ok | 2 | 4 |" in text
     assert "`agents review` — arxiv: 1, openalex: 3" in text
     assert "top 2 of 3" in text
@@ -169,3 +169,183 @@ def test_markdown_lists_sources_queries_and_the_top_candidates(
     assert "[DOI](https://doi.org/10.1000/a)" in text
     assert "Found by arxiv, openalex · 2 queries · best rank 1" in text
     assert "Human Oversight Of Agents" not in text  # beyond the top 2
+
+
+# ---------------------------------------------------------------------------- scores
+
+import json  # noqa: E402
+
+from litsearch.pipeline.score import context_hash  # noqa: E402
+
+
+def add_scores(
+    conn: sqlite3.Connection,
+    run_id: int,
+    scores: dict[str, tuple[int, str]],
+    *,
+    basis: str = "abstract",
+) -> None:
+    """Score papers by title: ``{title: (score, reason)}`` for the run's query set."""
+    queries = [r[0] for r in conn.execute("SELECT text FROM queries ORDER BY id")]
+    ctx = context_hash(queries)
+    with conn:
+        for title, (score, reason) in scores.items():
+            paper_id = conn.execute(
+                "SELECT id FROM papers WHERE title = ?", (title,)
+            ).fetchone()[0]
+            conn.execute(
+                "INSERT INTO scores (paper_id, project_hash, input_hash, "
+                "prompt_version, model, score, reason, summary, tags, matched_query, "
+                "basis) "
+                "VALUES (?, ?, 'i', 'v', 'm', ?, ?, ?, ?, ?, ?)",
+                (
+                    paper_id,
+                    ctx,
+                    score,
+                    reason,
+                    f"Summary of {title}. Two. Three.",
+                    json.dumps(["tag one", "tag two"]),
+                    "agents review" if score else None,
+                    basis,
+                ),
+            )
+
+
+@pytest.fixture
+def scored(filled: tuple[sqlite3.Connection, int]) -> tuple[sqlite3.Connection, int]:
+    conn, run_id = filled
+    add_scores(
+        conn,
+        run_id,
+        {
+            "Trust In Automation": (5, "directly about trust"),
+            "Agents That Review Code": (3, "partly relevant"),
+            "Human Oversight Of Agents": (1, "only shares words | and a pipe"),
+        },
+    )
+    return conn, run_id
+
+
+def test_scored_candidates_come_best_score_first(
+    scored: tuple[sqlite3.Connection, int],
+) -> None:
+    conn, run_id = scored
+    candidates = load_candidates(conn, run_id)
+    assert [(c.title, c.score) for c in candidates] == [
+        ("Trust In Automation", 5.0),
+        ("Agents That Review Code", 3.0),
+        ("Human Oversight Of Agents", 1.0),
+    ]
+    top = candidates[0]
+    assert top.reason == "directly about trust"
+    assert top.matched_query == "agents review"
+    assert top.summary.startswith("Summary of Trust In Automation")
+    assert top.tags == ("tag one", "tag two")
+    assert top.score_basis == "abstract"
+    assert load_summary(conn, run_id).n_scored == 3
+
+
+def test_unscored_papers_come_after_the_scored_ones(
+    filled: tuple[sqlite3.Connection, int],
+) -> None:
+    conn, run_id = filled
+    add_scores(conn, run_id, {"Human Oversight Of Agents": (2, "weak")})
+    candidates = load_candidates(conn, run_id)
+    assert candidates[0].title == "Human Oversight Of Agents"
+    assert [c.score for c in candidates[1:]] == [None, None]
+    assert load_summary(conn, run_id).n_scored == 1
+
+
+def test_scores_of_another_query_set_are_ignored(
+    scored: tuple[sqlite3.Connection, int],
+) -> None:
+    conn, _ = scored
+    other = db.create_run(conn, "other")
+    add_queries(conn, other, ["a completely different query"])
+    paper_id = conn.execute("SELECT id FROM papers LIMIT 1").fetchone()[0]
+    with conn:
+        conn.execute(
+            "INSERT INTO hits (run_id, source, paper_id, rank) VALUES (?, 'x', ?, 1)",
+            (other, paper_id),
+        )
+    assert all(c.score is None for c in load_candidates(conn, other))
+
+
+def test_the_csv_has_the_scoring_columns(
+    scored: tuple[sqlite3.Connection, int], tmp_path: Path
+) -> None:
+    conn, run_id = scored
+    path = tmp_path / "c.csv"
+    write_csv(load_candidates(conn, run_id), path)
+    rows = list(csv.DictReader(path.open(encoding="utf-8")))
+    assert [r["score"] for r in rows] == ["5", "3", "1"]
+    assert rows[0]["matched_query"] == "agents review"
+    assert rows[0]["reason"] == "directly about trust"
+    assert rows[0]["tags"] == "tag one; tag two"
+    assert rows[0]["score_basis"] == "abstract"
+    assert rows[0]["summary"].startswith("Summary of Trust In Automation")
+
+
+def test_the_markdown_groups_papers_by_score(
+    scored: tuple[sqlite3.Connection, int], tmp_path: Path
+) -> None:
+    conn, run_id = scored
+    path = tmp_path / "c.md"
+    write_markdown(load_candidates(conn, run_id), load_summary(conn, run_id), path)
+    text = path.read_text(encoding="utf-8")
+    assert "Scored 3 of 3 papers from 0 to 5" in text
+    assert "relative to the queries below" in text
+    assert "## Relevant (score 4 or more): top 1 of 1" in text
+    assert "### 1. Trust In Automation  `5/5`" in text
+    assert "**Fits** `agents review`: directly about trust" in text
+    assert "**Summary** (based on the abstract): Summary of Trust In Automation" in text
+    assert "Tags: tag one, tag two" in text
+    assert "## Possibly relevant (score 3)" in text
+    assert "<summary>1 papers</summary>" in text
+    assert "Agents That Review Code  `3/5`" in text
+    assert "## Screened out (score below 3)" in text
+    assert "| 1 | Human Oversight Of Agents | only shares words / and a pipe |" in text
+    assert "## Not scored" not in text
+    # the screened-out paper only appears in the table, not as a full entry
+    assert "### 1. Human Oversight" not in text
+
+
+def test_the_thresholds_and_the_top_limit_can_be_changed(
+    scored: tuple[sqlite3.Connection, int], tmp_path: Path
+) -> None:
+    conn, run_id = scored
+    path = tmp_path / "c.md"
+    write_markdown(
+        load_candidates(conn, run_id),
+        load_summary(conn, run_id),
+        path,
+        min_score=3,
+        maybe_score=1,
+        top=1,
+    )
+    text = path.read_text(encoding="utf-8")
+    assert "## Relevant (score 3 or more): top 1 of 2" in text
+    assert "## Possibly relevant (score 1)" in text
+    assert "Agents That Review Code" not in text.split("## Possibly relevant")[0]
+
+
+def test_unscored_papers_are_pointed_out_when_some_were_scored(
+    filled: tuple[sqlite3.Connection, int], tmp_path: Path
+) -> None:
+    conn, run_id = filled
+    add_scores(conn, run_id, {"Agents That Review Code": (4, "relevant")})
+    path = tmp_path / "c.md"
+    write_markdown(load_candidates(conn, run_id), load_summary(conn, run_id), path)
+    text = path.read_text(encoding="utf-8")
+    assert "## Not scored (2)" in text
+    assert f"litsearch score {run_id}" in text
+
+
+def test_a_paper_judged_by_its_title_says_so(
+    filled: tuple[sqlite3.Connection, int], tmp_path: Path
+) -> None:
+    conn, run_id = filled
+    add_scores(conn, run_id, {"Agents That Review Code": (4, "fits")}, basis="title")
+    path = tmp_path / "c.md"
+    write_markdown(load_candidates(conn, run_id), load_summary(conn, run_id), path)
+    assert "(based on the title only, no abstract)" in path.read_text(encoding="utf-8")

@@ -18,7 +18,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 RUN_TERMINAL_STATUSES = frozenset({"completed", "failed", "interrupted"})
 
@@ -191,6 +191,21 @@ COMMIT;
 """
 
 
+# v4: what a score is relative to. ``scores.project_hash`` holds the hash of the *query
+# set* the paper was judged against (a paper is relevant if it fits at least one query);
+# ``matched_query`` is the query it fits best and ``basis`` says whether the judgement
+# was made from the abstract or from the title alone.
+_MIGRATION_V4 = """
+BEGIN;
+
+ALTER TABLE scores ADD COLUMN matched_query TEXT;
+ALTER TABLE scores ADD COLUMN basis TEXT NOT NULL DEFAULT 'abstract';
+
+PRAGMA user_version = 4;
+COMMIT;
+"""
+
+
 class SchemaError(RuntimeError):
     """The database was created by a newer version of litsearch."""
 
@@ -232,6 +247,9 @@ def init_schema(conn: sqlite3.Connection) -> None:
         version = 2
     if version < 3:
         conn.executescript(_MIGRATION_V3)
+        version = 3
+    if version < 4:
+        conn.executescript(_MIGRATION_V4)
 
 
 def dumps_json(value: Any) -> str:
