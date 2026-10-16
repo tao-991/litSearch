@@ -1,6 +1,7 @@
 .env
 data/
 out/
+uploads/
 .idea/
 .venv/
 __pycache__/

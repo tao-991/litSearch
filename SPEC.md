@@ -24,7 +24,7 @@ Version 1 should: given a "project description + keywords + optional seed papers
 
 ### 1.2 Non-goals (version 1)
 
-- Scheduled monitoring, web UI, cross-paper Q&A, review writing, full-text PDF reading (see §7, later phases).
+- Scheduled monitoring, cross-paper Q&A, review writing, full-text PDF reading (see §7, later phases).
 - Vector stores / full-text chunked RAG.
 - Bypassing paywalls; scraping publisher sites; any gray-area acquisition channel.
 
@@ -201,7 +201,7 @@ Hard rule: **every link, DOI, author and year must come from fields returned by 
 ## 7. Later phases (not in version 1, but keep interfaces compatible)
 
 - **Phase 2**: L2 skimming and PDFs. PDF acquisition order: download directly when an arXiv ID exists; otherwise use the open-access link from OpenAlex/S2; if neither exists mark `need_manual` and let the user upload. Rate-limit downloads and validate the file header and size. Close reading with a Claude model can use Claude's native PDF support; with other models the PDF text is extracted locally first (a text-extraction dependency, to be agreed before it is added). Claude's PDF support (verified 2026-10): `document` blocks accept URL / base64 / Files API; each page is processed as both text and image; request body ≤ 32 MB, ≤ 100 pages (up to 600 with a 1M-token context window); about 1,500–3,000 text tokens per page, images counted separately. Enabling `citations` yields page numbers and quoted passages, but **using it together with structured JSON output returns 400**, so work in two steps: first read freely with citations, then organize into fixed fields without citations. Scanned files without a text layer cannot be cited. Note-cache keys include the PDF's sha256.
-- **Phase 3**: scheduled monitoring (incremental retrieval per topic + digest), cross-paper Q&A (read notes first, then the originals), review generation, publication-status re-check, Google Scholar alert e-mail approach, Obsidian / web UI.
+- **Phase 3**: scheduled monitoring (incremental retrieval per topic + digest), cross-paper Q&A (read notes first, then the originals), review generation, publication-status re-check, Google Scholar alert e-mail approach, Obsidian.
 
 ## 8. Risks and mitigations
 

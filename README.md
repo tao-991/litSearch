@@ -13,11 +13,28 @@ Phase 1 progress:
 - [x] **1c** De-duplication (merges the same paper found by different sources or queries)
 - [x] **1d** Retrieval pipeline: `litsearch run` / `litsearch status`, `--dry-run` estimate, confirmation, `--resume`, time limit, profiles
 - [x] **1e** Model access (Anthropic and OpenAI chat formats through one key and base URL, `litsearch check-llm`), `litsearch brief` (your words and PDFs become an editable brief), `litsearch queries` (the model writes the queries and decides how many), L1 scoring of title and abstract against the queries (`litsearch score`)
+- [x] **UI** `litsearch ui`: one command opens a local web page for settings, brief, queries, cost estimate, live progress, past runs and results (English only)
 - [ ] **1f** Snowballing, report, full command line, optional Google Scholar round
 
 ## Quick start
 
 Requires [uv](https://docs.astral.sh/uv/).
+
+### The easy way: one command, one web page
+
+```bash
+make sync                # once: install dependencies
+uv run litsearch ui      # opens the page in your browser
+```
+
+On a Mac you can also double-click `start.command`. Everything is done on that page:
+enter your API key and models on the Settings tab (saved to `.env`, never shown again),
+describe your research, check the brief and the queries, see the cost estimate, start the
+search and watch it run, then open the ranked list. Earlier runs are on the "Past runs"
+tab. The page only listens on your own computer, and the program stops by itself a few
+minutes after you close the page (or press Quit).
+
+### The command line
 
 ```bash
 make sync                      # install dependencies

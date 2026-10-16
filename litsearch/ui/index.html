@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="litsearch-token" content="__TOKEN__">
+<title>Lit Search</title>
+<style>
+:root{--bg:#f4f6f9;--card:#fff;--ink:#1d232b;--muted:#5b6673;--line:#dbe1e8;--accent:#2457c5;
+--accent-ink:#fff;--ok:#16794c;--bad:#b3261e;--warn:#b26a00;--soft:#eef1f5}
+@media (prefers-color-scheme:dark){:root{--bg:#14181d;--card:#1c2229;--ink:#e6eaef;
+--muted:#9aa5b1;--line:#2c343d;--accent:#7fa7ff;--accent-ink:#0d1a33;--ok:#4cc38a;
+--bad:#f2867f;--warn:#e0a040;--soft:#252d36}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,
+BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Noto Sans SC",sans-serif}
+header.top{position:sticky;top:0;z-index:10;background:var(--card);
+border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;
+padding:10px 20px;flex-wrap:wrap}
+.brand{font-weight:700;font-size:18px}
+nav.tabs{display:flex;gap:4px}
+nav.tabs button{background:none;border:0;padding:8px 14px;border-radius:8px;font:inherit;
+color:var(--muted);cursor:pointer}
+nav.tabs button.on{background:var(--soft);color:var(--ink);font-weight:600}
+.spacer{flex:1}
+main{max-width:900px;margin:0 auto;padding:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;
+margin:0 0 16px}
+.card h2{margin:0 0 4px;font-size:18px}
+.card .hint{color:var(--muted);font-size:14px;margin:0 0 12px}
+label{display:block;font-weight:600;font-size:14px;margin:12px 0 4px}
+textarea,input[type=text],input[type=password],input[type=number],input[type=date],select{
+width:100%;font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:9px;
+background:var(--bg);color:var(--ink)}
+textarea{min-height:130px;resize:vertical}
+textarea.tall{min-height:260px}
+button.btn{font:inherit;padding:9px 16px;border-radius:9px;border:1px solid var(--line);
+background:var(--soft);color:var(--ink);cursor:pointer}
+button.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);
+font-weight:600}
+button.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 16px}
+.banner{padding:12px 16px;border-radius:10px;margin-bottom:16px;border:1px solid var(--line);
+background:var(--soft)}
+.banner.warn{border-color:var(--warn)}
+.banner.bad{border-color:var(--bad)}
+.muted{color:var(--muted)}.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+pre.log{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;
+max-height:340px;overflow:auto;white-space:pre-wrap;font:13px/1.45 ui-monospace,Menlo,monospace;
+margin:10px 0}
+.pdf{display:flex;gap:10px;align-items:center;padding:6px 10px;border:1px solid var(--line);
+border-radius:9px;margin:6px 0;font-size:14px}
+.pdf span.name{font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:14px;text-align:center;
+color:var(--muted);margin-top:10px}
+.drop.over{border-color:var(--accent);color:var(--ink)}
+.qrow{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;margin:8px 0}
+.qrow .angle{grid-column:1;color:var(--muted);font-size:13px;margin-top:-4px}
+.qrow .x{background:none;border:0;color:var(--muted);font-size:18px;cursor:pointer}
+details.more{margin-top:12px}
+details.more summary{cursor:pointer;font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+td.actions{white-space:nowrap}
+td.actions a,td.actions button{margin-right:8px;font-size:14px}
+.linkbtn{color:var(--accent);cursor:pointer;background:none;border:0;padding:0;font:inherit;
+text-decoration:underline}
+.pill{display:inline-block;padding:1px 10px;border-radius:999px;background:var(--soft);
+font-size:13px}
+.check{display:flex;gap:8px;align-items:center;font-weight:400;margin:8px 0}
+.check input{width:auto}
+.models-list{max-height:160px;overflow:auto;font-size:13px;color:var(--muted);
+background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px;margin-top:8px}
+footer{max-width:900px;margin:0 auto;padding:0 20px 30px;color:var(--muted);font-size:13px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Lit Search</div>
+  <nav class="tabs">
+    <button data-tab="new" class="on">New research</button>
+    <button data-tab="runs">Past runs</button>
+    <button data-tab="settings">Settings</button>
+  </nav>
+  <div class="spacer"></div>
+  <span id="status" class="muted"></span>
+  <button class="btn" id="quit">Quit</button>
+</header>
+<main>
+  <div id="banner" class="banner" hidden></div>
+
+  <section id="tab-new">
+    <div class="card" id="card-describe">
+      <h2>1. Describe your research</h2>
+      <p class="hint">Write it in your own words, in any language. You can also add papers you
+      like: only the first pages of a PDF are read, as text, on this computer.</p>
+      <textarea id="about" placeholder="For example: I want to study how a coding agent can help
+engineers decide faster whether to accept the code changes it just generated."></textarea>
+      <div id="pdf-list"></div>
+      <div class="drop" id="drop">Drop PDFs here or
+        <button class="linkbtn" id="pick" type="button">choose files</button>
+        <input type="file" id="pdfs" accept=".pdf,application/pdf" multiple hidden>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="btn-brief">Write the brief</button>
+        <span id="brief-msg" class="muted"></span>
+      </div>
+    </div>
+
+    <div class="card" id="card-brief" hidden>
+      <h2>2. Check the brief</h2>
+      <p class="hint">This is what the model understood. Edit anything that is wrong: the
+      search queries are written from this text.</p>
+      <textarea id="brief" class="tall"></textarea>
+      <div class="row">
+        <button class="btn primary" id="btn-queries">Write the search queries</button>
+        <span id="queries-msg" class="muted"></span>
+      </div>
+    </div>
+
+    <div class="card" id="card-queries" hidden>
+      <h2>3. Check the search queries</h2>
+      <p class="hint">The model decided how many it needs. Edit, delete or add queries.</p>
+      <div id="queries"></div>
+      <div class="row"><button class="btn" id="add-query">+ Add a query</button></div>
+
+      <div class="grid" style="margin-top:8px">
+        <div><label for="profile">Size of the search</label>
+          <select id="profile"></select></div>
+        <div><label class="check" style="margin-top:30px"><input type="checkbox" id="score-on"
+          checked> Score the papers with the model</label></div>
+      </div>
+      <details class="more">
+        <summary>More options</summary>
+        <div class="grid">
+          <div><label for="per-query">Papers per query and source</label>
+            <input type="number" id="per-query" min="1" max="200"></div>
+          <div><label for="max-minutes">Time limit (minutes, 0 = none)</label>
+            <input type="number" id="max-minutes" min="0" max="600"></div>
+          <div><label for="since">Only papers since (date)</label>
+            <input type="date" id="since"></div>
+          <div><label for="oa-mode">OpenAlex search</label>
+            <select id="oa-mode"></select></div>
+          <div><label for="max-scored">Most papers to score</label>
+            <input type="number" id="max-scored" min="1" max="5000"></div>
+          <div><label for="min-score">Relevant from score</label>
+            <select id="min-score"></select></div>
+          <div><label for="maybe-score">Possibly relevant from score</label>
+            <select id="maybe-score"></select></div>
+        </div>
+        <label>Sources</label>
+        <div id="sources"></div>
+        <label for="run-name">Name of this run (optional)</label>
+        <input type="text" id="run-name" maxlength="60">
+      </details>
+
+      <div class="row">
+        <button class="btn" id="btn-estimate">Estimate the cost</button>
+        <button class="btn primary" id="btn-start">Start the search</button>
+        <span id="start-msg" class="muted"></span>
+      </div>
+      <pre class="log" id="estimate" hidden></pre>
+    </div>
+
+    <div class="card" id="card-progress" hidden>
+      <h2 id="progress-title">Searching...</h2>
+      <p class="hint" id="progress-sub"></p>
+      <pre class="log" id="log"></pre>
+      <div class="row">
+        <button class="btn" id="btn-stop">Stop</button>
+        <a class="btn primary" id="open-results" target="_blank" rel="noopener" hidden>Open the results</a>
+        <button class="btn" id="open-folder" hidden>Open the folder</button>
+        <button class="btn" id="new-again" hidden>Start a new research</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-runs" hidden>
+    <div class="card">
+      <h2>Past runs</h2>
+      <p class="hint">Open an earlier search again. Opening results or saving the files never
+      calls a model.</p>
+      <div class="grid">
+        <div><label for="view-min">Relevant from score</label><select id="view-min"></select></div>
+        <div><label for="view-maybe">Possibly relevant from score</label>
+          <select id="view-maybe"></select></div>
+      </div>
+      <div id="runs-box" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <section id="tab-settings" hidden>
+    <div class="card">
+      <h2>Models</h2>
+      <p class="hint">Needed for the brief, the queries and the scoring. Your API key is saved in
+      the .env file in your project folder and is never shown again.</p>
+      <label for="s-key">API key <span id="key-state" class="muted"></span></label>
+      <input type="password" id="s-key" autocomplete="off" placeholder="paste a new key to replace it">
+      <label class="check"><input type="checkbox" id="s-key-clear"> Remove the saved key</label>
+      <label for="s-base">API base URL (leave empty for the official API)</label>
+      <input type="text" id="s-base" placeholder="https://your-relay.example.com/v1">
+      <div class="grid">
+        <div><label for="s-l1">Model that scores papers (L1_MODEL)</label>
+          <input type="text" id="s-l1" list="model-names"></div>
+        <div><label for="s-query">Model that writes the brief and queries</label>
+          <input type="text" id="s-query" list="model-names"></div>
+      </div>
+      <datalist id="model-names"></datalist>
+      <p class="hint">For scoring pick a model without long hidden reasoning, for example
+      gpt-4.1-nano. <button class="linkbtn" id="load-models" type="button">Load the model list
+      from my API</button></p>
+      <div id="models-box" class="models-list" hidden></div>
+      <label for="s-lang">Language of summaries (queries are always English)</label>
+      <input type="text" id="s-lang" list="langs" placeholder="Chinese">
+      <datalist id="langs"><option value="Chinese"><option value="English">
+        <option value="Japanese"><option value="Korean"><option value="Spanish">
+        <option value="French"><option value="German"></datalist>
+    </div>
+    <div class="card">
+      <h2>Search sources (optional)</h2>
+      <label for="s-email">Contact e-mail (sent to OpenAlex and arXiv only, as a courtesy)</label>
+      <input type="text" id="s-email">
+      <div class="grid">
+        <div><label for="s-oa">OpenAlex key <span id="oa-state" class="muted"></span></label>
+          <input type="password" id="s-oa" autocomplete="off"></div>
+        <div><label for="s-s2">Semantic Scholar key <span id="s2-state" class="muted"></span></label>
+          <input type="password" id="s-s2" autocomplete="off"></div>
+      </div>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="save-settings">Save</button>
+      <button class="btn" id="test-models">Test the models</button>
+      <span id="settings-msg" class="muted"></span>
+    </div>
+    <div id="test-box" class="card" hidden style="margin-top:16px"></div>
+  </section>
+</main>
+<footer id="foot"></footer>
+
+<script>
+(function () {
+"use strict";
+var TOKEN = document.querySelector('meta[name=litsearch-token]').content;
+var state = null, pdfs = [], job = null, jobTimer = null, beatFails = 0;
+
+function $(id) { return document.getElementById(id); }
+function el(tag, attrs) {
+  var node = document.createElement(tag);
+  Object.keys(attrs || {}).forEach(function (k) {
+    if (k === 'text') node.textContent = attrs[k]; else node.setAttribute(k, attrs[k]);
+  });
+  for (var i = 2; i < arguments.length; i++) {
+    var c = arguments[i];
+    if (c != null) node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  }
+  return node;
+}
+function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+
+function api(method, path, body, raw) {
+  var headers = {'X-Token': TOKEN};
+  var init = {method: method, headers: headers};
+  if (raw !== undefined) { init.body = raw.body; Object.assign(headers, raw.headers); }
+  else if (body !== undefined) { headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(body); }
+  return fetch(path, init).then(function (r) {
+    return r.json().catch(function () { return {error: 'Unexpected answer'}; }).then(function (d) {
+      if (!r.ok) throw new Error(d.error || ('Error ' + r.status));
+      return d;
+    });
+  });
+}
+function busy(btn, on, msgNode, msg) {
+  btn.disabled = on;
+  if (msgNode) { msgNode.className = 'muted'; msgNode.textContent = on ? msg : ''; }
+}
+function fail(node, err) { node.className = 'bad'; node.textContent = err.message || String(err); }
+
+/* ---------- drafts (so a reload does not lose your text) ---------- */
+function saveDraft() {
+  try {
+    localStorage.setItem('litsearch.draft', JSON.stringify({
+      about: $('about').value, brief: $('brief').value, queries: readQueries().map(function (q) { return q.query; })
+    }));
+  } catch (e) { /* storage may be unavailable */ }
+}
+function loadDraft() {
+  try {
+    var d = JSON.parse(localStorage.getItem('litsearch.draft') || 'null');
+    if (!d) return;
+    $('about').value = d.about || '';
+    if (d.brief) { $('brief').value = d.brief; $('card-brief').hidden = false; }
+    if (d.queries && d.queries.length) { setQueries(d.queries.map(function (q) { return {query: q, angle: ''}; })); }
+  } catch (e) { /* ignore */ }
+}
+
+/* ---------- tabs ---------- */
+function showTab(name) {
+  ['new', 'runs', 'settings'].forEach(function (t) { $('tab-' + t).hidden = (t !== name); });
+  document.querySelectorAll('nav.tabs button').forEach(function (b) {
+    b.classList.toggle('on', b.dataset.tab === name);
+  });
+  if (name === 'runs') loadRuns();
+  if (name === 'settings') fillSettings();
+}
+document.querySelectorAll('nav.tabs button').forEach(function (b) {
+  b.addEventListener('click', function () { showTab(b.dataset.tab); });
+});
+
+/* ---------- state ---------- */
+function refresh() {
+  return api('GET', '/api/state').then(function (s) {
+    state = s;
+    var banner = $('banner');
+    banner.hidden = true;
+    if (s.settings_problem) {
+      banner.hidden = false; banner.className = 'banner bad';
+      banner.textContent = 'There is a problem in your settings: ' + s.settings_problem;
+    } else if (!s.ready.models) {
+      banner.hidden = false; banner.className = 'banner warn';
+      banner.textContent = 'Add your API key and the models on the Settings tab to let the model write the brief and the queries.';
+    }
+    $('foot').textContent = 'Lit Search ' + s.version + ' - files are kept in ' + s.home +
+      ' - the page stops the program a few minutes after you close it.';
+    if (!$('profile').options.length) initOptions(s);
+    return s;
+  });
+}
+function option(value, text) { return el('option', {value: value, text: text}); }
+function initOptions(s) {
+  Object.keys(s.profiles).forEach(function (n) {
+    var p = s.profiles[n];
+    $('profile').appendChild(option(n, n + ' (up to ' + p.max_queries + ' queries, ' + p.per_query + ' papers each, ' + p.max_minutes + ' min)'));
+  });
+  $('profile').value = s.defaults.profile;
+  s.defaults.openalex_modes.forEach(function (m) { $('oa-mode').appendChild(option(m, m)); });
+  s.defaults.sources.forEach(function (name) {
+    var box = el('input', {type: 'checkbox', value: name, checked: 'checked'});
+    $('sources').appendChild(el('label', {'class': 'check'}, box, name));
+  });
+  [['min-score', s.defaults.min_score], ['maybe-score', s.defaults.maybe_score],
+   ['view-min', s.defaults.min_score], ['view-maybe', s.defaults.maybe_score]].forEach(function (pair) {
+    for (var v = 5; v >= 0; v--) $(pair[0]).appendChild(option(String(v), String(v)));
+    $(pair[0]).value = String(pair[1]);
+  });
+  applyProfile();
+}
+function applyProfile() {
+  var p = state.profiles[$('profile').value];
+  $('per-query').value = p.per_query; $('max-minutes').value = p.max_minutes; $('max-scored').value = p.max_scored;
+}
+$('profile').addEventListener('change', applyProfile);
+
+/* ---------- step 1: PDFs and the brief ---------- */
+function renderPdfs() {
+  var box = $('pdf-list'); clear(box);
+  pdfs.forEach(function (p, i) {
+    var rm = el('button', {'class': 'linkbtn', type: 'button', text: 'remove'});
+    rm.addEventListener('click', function () { pdfs.splice(i, 1); renderPdfs(); });
+    box.appendChild(el('div', {'class': 'pdf'}, el('span', {'class': 'name', text: p.name}),
+      el('span', {'class': 'muted', text: p.pages_read + ' of ' + p.n_pages + ' pages read' + (p.truncated ? ' (cut)' : '')}), rm));
+  });
+}
+function uploadFiles(files) {
+  Array.prototype.forEach.call(files, function (f) {
+    if (pdfs.length >= 5) { fail($('brief-msg'), new Error('Use at most 5 PDFs.')); return; }
+    $('brief-msg').className = 'muted'; $('brief-msg').textContent = 'Reading ' + f.name + '...';
+    api('POST', '/api/upload-pdf', undefined, {body: f, headers: {'X-Filename': encodeURIComponent(f.name), 'Content-Type': 'application/pdf'}})
+      .then(function (d) { pdfs.push(d); renderPdfs(); $('brief-msg').textContent = ''; })
+      .catch(function (e) { fail($('brief-msg'), e); });
+  });
+}
+$('pick').addEventListener('click', function () { $('pdfs').click(); });
+$('pdfs').addEventListener('change', function () { uploadFiles($('pdfs').files); $('pdfs').value = ''; });
+var drop = $('drop');
+['dragenter', 'dragover'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); }); });
+['dragleave', 'drop'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over'); }); });
+drop.addEventListener('drop', function (e) { uploadFiles(e.dataTransfer.files); });
+
+$('btn-brief').addEventListener('click', function () {
+  var btn = $('btn-brief');
+  busy(btn, true, $('brief-msg'), 'The model is writing the brief...');
+  api('POST', '/api/brief', {about: $('about').value, pdf_ids: pdfs.map(function (p) { return p.id; })})
+    .then(function (d) {
+      $('brief').value = d.brief; $('card-brief').hidden = false;
+      $('brief-msg').className = 'ok';
+      $('brief-msg').textContent = d.from_cache ? 'Done (from the cache, no model call).' : 'Done (' + d.model + ', ' + d.tokens[0] + ' in / ' + d.tokens[1] + ' out tokens).';
+      saveDraft(); $('card-brief').scrollIntoView({behavior: 'smooth'});
+    })
+    .catch(function (e) { fail($('brief-msg'), e); })
+    .then(function () { btn.disabled = false; });
+});
+
+/* ---------- step 2: the queries ---------- */
+function setQueries(list) {
+  var box = $('queries'); clear(box);
+  list.forEach(function (q) { addQueryRow(q.query, q.angle); });
+  $('card-queries').hidden = false;
+}
+function addQueryRow(text, angle) {
+  var input = el('input', {type: 'text', maxlength: '200'});
+  input.value = text || '';
+  input.addEventListener('input', saveDraft);
+  var x = el('button', {'class': 'x', type: 'button', title: 'Delete', text: '×'});
+  var row = el('div', {'class': 'qrow'}, input, x);
+  if (angle) row.appendChild(el('div', {'class': 'angle', text: angle}));
+  x.addEventListener('click', function () { row.remove(); saveDraft(); });
+  $('queries').appendChild(row);
+  return input;
+}
+function readQueries() {
+  return Array.prototype.map.call($('queries').querySelectorAll('input'), function (i) { return {query: i.value.trim()}; })
+    .filter(function (q) { return q.query; });
+}
+$('add-query').addEventListener('click', function () { addQueryRow('', '').focus(); });
+
+$('btn-queries').addEventListener('click', function () {
+  var btn = $('btn-queries');
+  busy(btn, true, $('queries-msg'), 'The model is writing the queries...');
+  api('POST', '/api/queries', {project: $('brief').value, profile: $('profile').value || undefined})
+    .then(function (d) {
+      setQueries(d.queries);
+      var note = d.n_over_ceiling ? ' ' + d.n_over_ceiling + ' more were dropped (the ' + d.ceiling + ' most important are kept).' : '';
+      $('queries-msg').className = 'ok';
+      $('queries-msg').textContent = d.queries.length + ' queries.' + note;
+      saveDraft(); $('card-queries').scrollIntoView({behavior: 'smooth'});
+    })
+    .catch(function (e) { fail($('queries-msg'), e); })
+    .then(function () { btn.disabled = false; });
+});
+
+/* ---------- step 3: estimate and start ---------- */
+function runPayload() {
+  var sources = Array.prototype.filter.call($('sources').querySelectorAll('input'), function (i) { return i.checked; }).map(function (i) { return i.value; });
+  function num(id) { return $(id).value === '' ? null : Number($(id).value); }
+  return {
+    queries: readQueries().map(function (q) { return q.query; }),
+    profile: $('profile').value, per_query: num('per-query'), max_minutes: num('max-minutes'),
+    since: $('since').value || null, openalex_mode: $('oa-mode').value, sources: sources,
+    project: $('brief').value, origin: 'llm', name: $('run-name').value,
+    scoring: {enabled: $('score-on').checked, max_scored: num('max-scored'),
+      min_score: Number($('min-score').value), maybe_score: Number($('maybe-score').value)}
+  };
+}
+$('btn-estimate').addEventListener('click', function () {
+  var btn = $('btn-estimate');
+  busy(btn, true, $('start-msg'), 'Estimating...');
+  api('POST', '/api/estimate', runPayload()).then(function (d) {
+    $('estimate').hidden = false; $('estimate').textContent = d.lines.join('\n');
+  }).catch(function (e) { fail($('start-msg'), e); }).then(function () { btn.disabled = false; });
+});
+$('btn-start').addEventListener('click', function () {
+  var btn = $('btn-start');
+  busy(btn, true, $('start-msg'), 'Starting...');
+  api('POST', '/api/runs/start', runPayload()).then(function (j) {
+    showProgress(j);
+  }).catch(function (e) { fail($('start-msg'), e); }).then(function () { btn.disabled = false; });
+});
+
+/* ---------- step 4: progress ---------- */
+function showProgress(j) {
+  job = {id: j.id, next: 0, run_id: j.run_id};
+  $('card-progress').hidden = false; clear($('log')); $('log').textContent = '';
+  ['open-results', 'open-folder', 'new-again'].forEach(function (id) { $(id).hidden = true; });
+  $('btn-stop').hidden = false; $('btn-stop').disabled = false;
+  $('progress-title').textContent = j.kind === 'score' ? 'Scoring...' : 'Searching...';
+  $('progress-sub').textContent = 'You can leave this page open; the search runs on this computer.';
+  $('card-progress').scrollIntoView({behavior: 'smooth'});
+  poll();
+}
+function poll() {
+  if (!job) return;
+  api('GET', '/api/jobs/' + job.id + '?since=' + job.next).then(function (d) {
+    if (d.lines.length) {
+      var log = $('log'); log.textContent += (log.textContent ? '\n' : '') + d.lines.join('\n'); log.scrollTop = log.scrollHeight;
+    }
+    job.next = d.next;
+    $('progress-sub').textContent = d.status === 'running' ? 'Working for ' + Math.round(d.elapsed) + ' s...' : '';
+    if (d.status === 'running') { jobTimer = setTimeout(poll, 1000); return; }
+    finishJob(d);
+  }).catch(function (e) { $('progress-sub').textContent = e.message; jobTimer = setTimeout(poll, 3000); });
+}
+function finishJob(d) {
+  $('btn-stop').hidden = true;
+  var title = {done: 'Finished', failed: 'Something went wrong', cancelled: 'Stopped'}[d.status] || d.status;
+  $('progress-title').textContent = title;
+  var log = $('log');
+  if (d.result && d.result.lines && d.result.lines.length) log.textContent += '\n\n' + d.result.lines.join('\n');
+  if (d.error) log.textContent += '\n' + d.error;
+  log.scrollTop = log.scrollHeight;
+  if (d.run_id && d.result && d.result.run_id) {
+    var link = $('open-results'); link.hidden = false;
+    link.href = reportUrl(d.run_id);
+    $('open-folder').hidden = false; $('open-folder').onclick = function () { api('POST', '/api/open-folder', {run_id: d.run_id}); };
+  }
+  $('new-again').hidden = false;
+  job = null;
+}
+$('btn-stop').addEventListener('click', function () {
+  if (!job) return;
+  $('btn-stop').disabled = true; $('progress-sub').textContent = 'Stopping...';
+  api('POST', '/api/jobs/' + job.id + '/cancel', {}).catch(function () {});
+});
+$('new-again').addEventListener('click', function () {
+  $('card-progress').hidden = true; window.scrollTo({top: 0, behavior: 'smooth'});
+});
+
+/* ---------- past runs ---------- */
+function reportUrl(runId) {
+  return '/runs/' + runId + '/report.html?t=' + encodeURIComponent(TOKEN) + '&min=' + $('view-min').value + '&maybe=' + $('view-maybe').value;
+}
+function loadRuns() {
+  api('GET', '/api/runs').then(function (d) {
+    var box = $('runs-box'); clear(box);
+    if (!d.runs.length) { box.appendChild(el('p', {'class': 'muted', text: 'No runs yet. Start one on the New research tab.'})); return; }
+    var table = el('table', {}, el('thead', {}, el('tr', {}, el('th', {text: 'Run'}), el('th', {text: 'Started'}), el('th', {text: 'Papers'}), el('th', {text: 'Scored'}), el('th', {text: ''}))));
+    var body = el('tbody', {});
+    d.runs.forEach(function (r) {
+      var open = el('a', {href: reportUrl(r.id), target: '_blank', rel: 'noopener', text: 'Open results'});
+      open.addEventListener('click', function () { open.href = reportUrl(r.id); });
+      var save = el('button', {'class': 'linkbtn', type: 'button', text: 'Save files and show folder'});
+      save.addEventListener('click', function () {
+        api('POST', '/api/runs/' + r.id + '/files', {min: Number($('view-min').value), maybe: Number($('view-maybe').value)})
+          .then(function () { return api('POST', '/api/open-folder', {run_id: r.id}); }).catch(function (e) { alert(e.message); });
+      });
+      var actions = el('td', {'class': 'actions'}, open, save);
+      if (r.n_scored < r.n_papers && state && state.ready.scoring) {
+        var more = el('button', {'class': 'linkbtn', type: 'button', text: 'Score the rest'});
+        more.addEventListener('click', function () {
+          api('POST', '/api/runs/' + r.id + '/score', {}).then(function (j) { showTab('new'); showProgress(j); }).catch(function (e) { alert(e.message); });
+        });
+        actions.appendChild(more);
+      }
+      body.appendChild(el('tr', {},
+        el('td', {}, el('strong', {text: r.name}), el('div', {'class': 'muted', text: r.queries.join(' | ')})),
+        el('td', {text: r.started_at.replace('T', ' ').slice(0, 16)}),
+        el('td', {text: String(r.n_papers)}),
+        el('td', {text: r.n_scored + (r.scored_by ? ' (' + r.scored_by.split(',')[0] + ')' : '')}),
+        actions));
+    });
+    table.appendChild(body); box.appendChild(table);
+  }).catch(function (e) { $('runs-box').textContent = e.message; });
+}
+
+/* ---------- settings ---------- */
+function fillSettings() {
+  refresh().then(function (s) {
+    var f = s.settings;
+    $('s-base').value = f.LLM_BASE_URL.value; $('s-l1').value = f.L1_MODEL.value;
+    $('s-query').value = f.QUERY_MODEL.value; $('s-lang').value = f.SUMMARY_LANGUAGE.value;
+    $('s-email').value = f.CONTACT_EMAIL.value;
+    $('key-state').textContent = f.LLM_API_KEY.set ? '(saved)' : '(not set)';
+    $('oa-state').textContent = f.OPENALEX_API_KEY.set ? '(saved)' : '(not set)';
+    $('s2-state').textContent = f.S2_API_KEY.set ? '(saved)' : '(not set)';
+    ['s-key', 's-oa', 's-s2'].forEach(function (id) { $(id).value = ''; });
+    $('s-key-clear').checked = false;
+  });
+}
+$('save-settings').addEventListener('click', function () {
+  var set = {LLM_BASE_URL: $('s-base').value, L1_MODEL: $('s-l1').value, QUERY_MODEL: $('s-query').value,
+    SUMMARY_LANGUAGE: $('s-lang').value, CONTACT_EMAIL: $('s-email').value,
+    LLM_API_KEY: $('s-key').value, OPENALEX_API_KEY: $('s-oa').value, S2_API_KEY: $('s-s2').value};
+  var clearKeys = $('s-key-clear').checked ? ['LLM_API_KEY'] : [];
+  var btn = $('save-settings'); busy(btn, true, $('settings-msg'), 'Saving...');
+  api('POST', '/api/settings', {set: set, clear: clearKeys}).then(function () {
+    $('settings-msg').className = 'ok'; $('settings-msg').textContent = 'Saved.'; return fillSettings();
+  }).catch(function (e) { fail($('settings-msg'), e); }).then(function () { btn.disabled = false; });
+});
+$('load-models').addEventListener('click', function () {
+  api('GET', '/api/models').then(function (d) {
+    var list = $('model-names'); clear(list);
+    d.models.forEach(function (m) { list.appendChild(option(m, '')); });
+    var box = $('models-box'); box.hidden = false; box.textContent = d.models.length ? d.models.join(', ') : 'The API does not list its models.';
+  }).catch(function (e) { fail($('settings-msg'), e); });
+});
+$('test-models').addEventListener('click', function () {
+  var btn = $('test-models'); busy(btn, true, $('settings-msg'), 'Testing...');
+  api('POST', '/api/check-llm', {}).then(function (d) {
+    var box = $('test-box'); clear(box); box.hidden = false;
+    d.results.forEach(function (r) {
+      var line = r.variable + ': ' + (r.model || '(empty)') + ' - ' + (r.ok ? 'OK' : 'FAILED') + ' - ' + r.message + (r.seconds ? ' (' + r.seconds + ' s)' : '');
+      box.appendChild(el('div', {'class': r.ok ? 'ok' : 'bad', text: line}));
+    });
+    if (d.models.length) box.appendChild(el('div', {'class': 'models-list', text: 'The API offers: ' + d.models.join(', ')}));
+  }).catch(function (e) { fail($('settings-msg'), e); }).then(function () { btn.disabled = false; });
+});
+
+/* ---------- quit and heartbeat ---------- */
+$('quit').addEventListener('click', function () {
+  api('POST', '/api/quit', {}).then(function () { document.body.textContent = 'Lit Search has stopped. You can close this tab.'; }).catch(function () {});
+});
+setInterval(function () {
+  api('POST', '/api/heartbeat', {}).then(function () { beatFails = 0; $('status').textContent = ''; })
+    .catch(function () { if (++beatFails >= 2) $('status').textContent = 'The program has stopped. Start it again.'; });
+}, 10000);
+
+$('about').addEventListener('input', saveDraft);
+$('brief').addEventListener('input', saveDraft);
+refresh().then(function (s) {
+  loadDraft();
+  if (s.job) showProgress(s.job);
+}).catch(function (e) { $('banner').hidden = false; $('banner').className = 'banner bad'; $('banner').textContent = e.message; });
+})();
+</script>
+</body>
+</html>
