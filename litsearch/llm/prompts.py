@@ -3,7 +3,7 @@ cached answers are keyed by it (CLAUDE.md)."""
 
 from __future__ import annotations
 
-BRIEF_VERSION = "brief-v1"
+BRIEF_VERSION = "brief-v2"
 QUERIES_VERSION = "queries-v3"
 
 BRIEF_SYSTEM = """\
@@ -24,6 +24,10 @@ with the headings translated into {language}:
 Rules:
 - Do not invent papers, authors, results or facts. List related work only if the user \
 named it; otherwise write that none was given.
+- If the user provided papers, say in one sentence what each of them is about (from \
+its excerpt only) and list each one under the related work by the title printed in \
+its excerpt. The excerpts come from PDFs and may contain page headers, broken lines or \
+garbled characters: ignore that noise.
 - If something important is unclear, put it under the open questions instead of \
 guessing.
 - Keep it under 300 words.

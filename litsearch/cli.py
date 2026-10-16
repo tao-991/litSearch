@@ -17,6 +17,7 @@ from litsearch.collectors import SOURCE_NAMES, build_client, build_collectors
 from litsearch.collectors.base import CollectorError
 from litsearch.config import Settings
 from litsearch.llm import LLMError, build_llm
+from litsearch.pdf import PdfError, read_opening
 from litsearch.pipeline import export
 from litsearch.pipeline.brief import make_brief
 from litsearch.pipeline.queries import (
@@ -500,6 +501,13 @@ def brief(
     about_file: Annotated[
         Path | None, typer.Option(help="Read the description from this text file.")
     ] = None,
+    pdf: Annotated[
+        list[Path] | None,
+        typer.Option(
+            help="A paper you are interested in (repeatable). Its first pages are "
+            "read as text; the PDF itself is not uploaded."
+        ),
+    ] = None,
     out: Annotated[Path, typer.Option(help="Where to write the brief.")] = Path(
         "project.md"
     ),
@@ -517,8 +525,22 @@ def brief(
     parts = [
         t for t in (about, _read_text(about_file, "file") if about_file else None) if t
     ]
-    if not parts:
-        raise _fail('describe your research with --about "..." or --about-file FILE')
+    excerpts: list[tuple[str, str]] = []
+    for path in pdf or []:
+        try:
+            opening = read_opening(path)
+        except PdfError as exc:
+            raise _fail(str(exc)) from None
+        cut = ", cut to the character limit" if opening.truncated else ""
+        typer.echo(
+            f"Read {opening.pages_read} of {opening.n_pages} pages of {opening.name} "
+            f"({len(opening.text)} characters{cut})."
+        )
+        excerpts.append((opening.name, opening.text))
+    if not parts and not excerpts:
+        raise _fail(
+            'describe your research with --about "...", --about-file FILE or --pdf FILE'
+        )
     if out.exists() and not force:
         raise _fail(f"{out} already exists; use --force to overwrite it or --out NAME")
     conn = _open_db(settings, db_path)
@@ -532,6 +554,7 @@ def brief(
                 model=model,
                 about="\n\n".join(parts),
                 language=settings.summary_language,
+                excerpts=excerpts,
             )
         finally:
             await llm.aclose()

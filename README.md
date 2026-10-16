@@ -4,7 +4,7 @@ Deep, multi-source, auditable literature search for a research project.
 
 Asking a chat assistant to search the literature tends to end in rate limits, incomplete results, two or three rounds of searching, and no way to tell how much was covered. Lit Search is meant to fix that: give it a project description (plus optional keywords and seed papers) and it runs many queries across several scholarly sources, screens the results through a "reading funnel", and writes a ranked report. The report also records which queries were used, which sources succeeded or failed, and how many new relevant papers each round added, so coverage can be checked rather than guessed.
 
-> **Status: early. Phase 0 (API measurement) is done; Phase 1 (the application) is in progress.** `litsearch run` already searches OpenAlex, Semantic Scholar and arXiv for the queries you give it, merges duplicates, stores everything in a local SQLite file and writes a candidate list (CSV and Markdown). What does **not** exist yet: generating queries from a description or a PDF, scoring papers with a model, citation snowballing and the final report. The candidate list is therefore not ranked by relevance to your project, only by how many of your queries found each paper.
+> **Status: early. Phase 0 (API measurement) is done; Phase 1 (the application) is in progress.** You can already describe your research in plain words and/or give PDFs of papers you like: a model writes a project brief for you to edit, then writes a few focused search queries (it decides how many), and `litsearch run` searches OpenAlex, Semantic Scholar and arXiv, merges duplicates, stores everything in a local SQLite file and writes a candidate list (CSV and Markdown). What does **not** exist yet: scoring papers with a model, citation snowballing and the final report. The candidate list is therefore not yet ranked by relevance to your project, only by how many queries found each paper.
 
 Phase 1 progress:
 
@@ -12,7 +12,7 @@ Phase 1 progress:
 - [x] **1b** Collectors for OpenAlex, Semantic Scholar and arXiv (offline-tested; smoke-tested against the real services)
 - [x] **1c** De-duplication (merges the same paper found by different sources or queries)
 - [x] **1d** Retrieval pipeline: `litsearch run` / `litsearch status`, `--dry-run` estimate, confirmation, `--resume`, time limit, profiles
-- [ ] **1e** Model access, query generation from free text or PDFs, L1 scoring. *Done:* a model client that speaks both the Anthropic and the OpenAI chat format (Claude, GPT, Gemini, DeepSeek, ... through one key and base URL), `litsearch check-llm`, `litsearch brief` (your words become an editable project brief) and `litsearch queries` / `litsearch run --project` (the model writes the queries and decides how many). *Still to do:* PDF input, scoring papers.
+- [ ] **1e** Model access, query generation from free text or PDFs, L1 scoring. *Done:* a model client that speaks both the Anthropic and the OpenAI chat format (Claude, GPT, Gemini, DeepSeek, ... through one key and base URL), `litsearch check-llm`, `litsearch brief` (your words become an editable project brief) and `litsearch queries` / `litsearch run --project` (the model writes the queries and decides how many). `litsearch brief --pdf` (the opening pages of PDFs you are interested in are read locally as text and used for the brief). *Still to do:* scoring papers.
 - [ ] **1f** Snowballing, report, full command line, optional Google Scholar round
 
 ## Quick start
@@ -27,6 +27,8 @@ uv run litsearch check-llm     # test the model settings
 # 1. describe your research in your own words; the model writes a project brief
 uv run litsearch brief --about "I want to study how a coding agent can help engineers decide faster whether to accept the code changes it just generated"
 #    -> project.md: read it and edit it if the model misunderstood something
+#    (papers you like can be added too: --pdf paper.pdf, repeatable. Only their first
+#    pages are read, as text, on your computer; the PDF itself is not uploaded)
 
 # 2. the model writes the search queries (it decides how many); they are saved in queries.txt
 uv run litsearch queries --project project.md
@@ -49,7 +51,7 @@ Results are written to `out/<run-name>/` and to a SQLite file at `data/litsearch
 
 ## Planned behaviour (version 1)
 
-1. **Generate queries.** You describe your research interest in plain language (PDF input is planned); a model writes a project brief that you can edit, then a few focused queries (an established term for the core concept, plus a sub-question only if the brief names one) and decides itself how many are needed. You can edit the queries and re-run. *(done, except PDF input)*
+1. **Generate queries.** You describe your research interest in plain language and/or give PDFs of papers you like (their opening pages are read locally as text); a model writes a project brief that you can edit, then a few focused queries (an established term for the core concept, plus a sub-question only if the brief names one) and decides itself how many are needed. You can edit the queries and re-run. *(done, except PDF input)*
 2. **Retrieve from several sources.** OpenAlex (titles and abstracts by default), Semantic Scholar and arXiv; Google Scholar as an optional, low-frequency supplement. *(done, except Google Scholar)*
 3. **De-duplicate** by DOI, arXiv ID and fuzzy title match (preprint and published versions are merged). *(done)*
 4. **Screen (L1).** A cheap model reads title and abstract in batches and returns a score, a reason, a 3-sentence summary and tags. Borderline papers go to a "possibly relevant" bucket instead of being dropped.
@@ -60,7 +62,7 @@ What you get is a report under `out/<run-name>/` (`report.md` is written to be d
 
 Cost control is part of the design: a `--dry-run` estimate before anything is fetched, a confirmation step, a time limit, call and paper limits, `--resume` for interrupted runs, and caching of every model result. A failing data source never fails the run; it is recorded and shown in the output. The default size is the `quick` profile (15 papers per query and source, one snowball round, the model reads at most 150 papers, 10 minutes, and a safety ceiling of 5 queries); `standard` (10) and `deep` (20) search wider. The model decides how many queries a topic needs, and is told to be focused (a literature review, not an exploration); the ceiling only cuts off long lists, keeping the most important queries. You read only the short ranked list at the top of the report, not everything that was retrieved.
 
-Later phases (not in version 1): skimming PDFs, scheduled monitoring, cross-paper Q&A, review drafts, a conversational front end. See [`SPEC.md`](SPEC.md).
+Later phases (not in version 1): reading PDFs in depth, scheduled monitoring, cross-paper Q&A, review drafts, a conversational front end. See [`SPEC.md`](SPEC.md).
 
 ## What Phase 0 found
 
@@ -75,8 +77,10 @@ Measured on 2026-10-16 with real requests (details and caveats in [`docs/spike-f
 ## Repository layout
 
 ```
-litsearch/              the application: config, db, models, collectors/ (one per source),
-                        pipeline/ (dedup, store, retrieve, runner, export), cli
+litsearch/              the application: config, db, models, pdf (text of a PDF's first pages),
+                        collectors/ (one per source), llm/ (model client for the Anthropic and
+                        OpenAI formats, prompts, cache), pipeline/ (dedup, store, retrieve,
+                        runner, export, brief, queries), cli
 tests/                  unit tests (never touch the network)
 pyproject.toml          project metadata, dependencies, ruff and pytest settings
 uv.lock                 exact dependency versions (generated by uv, do not edit)

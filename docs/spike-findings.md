@@ -211,6 +211,14 @@ A relay that lists 146 models (19 Claude, 63 GPT, 16 Gemini, plus DeepSeek, Qwen
 - A cost of about 700 input and 700–1250 output tokens per query-writing call, and about 220 in / 400 out for a brief.
 - **Too many even then.** 26 queries was judged far too broad for a literature review (the prompt had asked to cover adjacent fields and human-factors angles). The prompt was changed to ask for a *focused* review: precision first, another query only if it finds papers the earlier ones would miss, no branching into adjacent fields. Result with the same model and no ceiling shown to it: 5 queries for the broad topic and 1 for the one-question topic. The profile ceilings were lowered to 5 / 10 / 20.
 
+## 6h. PDF input (Phase 1e, 2026-10-16)
+
+`litsearch brief --pdf` was tried with the MSR 2025 paper *Human-In-The-Loop Software Development Agents: Challenges and Future Directions* (arXiv 2506.11009, 3 pages, 47 KB).
+
+- The text of all 3 pages was extracted locally; the 6,000-character budget cut it. The model wrote a brief that stated that the user had given no research description yet, summarised the paper's topic (testing cost, instability of LLM similarity scores) and listed the paper itself under related work by its printed title; open questions asked what the user wants to do with it. The brief cost 1,640 input and 417 output tokens.
+- From that brief the model wrote 6 focused queries (for example "LLM code evaluation stability", "SWE-bench environment setup").
+- `pypdf` logged one "fontTools is required to fully parse the encoding of a CFF Type1 font" warning per font for this ordinary LaTeX paper although the text came out fine; the warnings are silenced.
+
 ## 7. Suggested SPEC changes
 
 These were applied in SPEC v0.3:

@@ -797,3 +797,83 @@ def test_singular_and_plural_of_queries_in_the_output(
     use_llm(monkeypatch, FakeLLM([queries_reply("code review agents")]))
     made = runner.invoke(app, ["queries", "--project", "project.md"])
     assert "1 query (model" in made.output
+
+
+# --------------------------------------------------------------------- brief --pdf
+
+from pypdf import PdfWriter  # noqa: E402
+
+from tests.pdf_fixtures import make_pdf  # noqa: E402
+
+
+def pdf_file(workdir: Path, name: str, *pages: list[str]) -> Path:
+    path = workdir / name
+    path.write_bytes(make_pdf(list(pages)))
+    return path
+
+
+def test_brief_reads_the_opening_of_pdfs_and_passes_the_text_on(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    llm_ready(monkeypatch)
+    pdf_file(
+        workdir, "hitl.pdf", ["Human-in-the-loop agents", "Abstract: we study agents."]
+    )
+    pdf_file(workdir, "trust.pdf", ["Trust in automation"], ["Second page text"])
+    llm = use_llm(monkeypatch, FakeLLM([BRIEF_TEXT]))
+    result = runner.invoke(
+        app,
+        ["brief", "--pdf", "hitl.pdf", "--pdf", "trust.pdf", "--about", "also trust"],
+    )
+    assert result.exit_code == 0, result.output
+    assert "Read 1 of 1 pages of hitl.pdf" in result.output
+    assert "Read 2 of 2 pages of trust.pdf" in result.output
+    user = llm.calls[0]["user"]
+    assert "also trust" in user
+    assert "Paper 1 provided by the user (hitl.pdf)" in user
+    assert "Human-in-the-loop agents" in user and "we study agents" in user
+    assert "Paper 2 provided by the user (trust.pdf)" in user
+    assert "Second page text" in user
+    assert "If the user provided papers" in llm.calls[0]["system"]
+
+
+def test_a_pdf_alone_is_enough_to_write_a_brief(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    llm_ready(monkeypatch)
+    pdf_file(workdir, "only.pdf", ["A paper I like"])
+    use_llm(monkeypatch, FakeLLM([BRIEF_TEXT]))
+    result = runner.invoke(app, ["brief", "--pdf", "only.pdf"])
+    assert result.exit_code == 0, result.output
+    assert (workdir / "project.md").exists()
+
+
+def test_a_long_pdf_is_reported_as_cut(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    llm_ready(monkeypatch)
+    pdf_file(workdir, "long.pdf", [("word " * 40) for _ in range(200)])
+    llm = use_llm(monkeypatch, FakeLLM([BRIEF_TEXT]))
+    result = runner.invoke(app, ["brief", "--pdf", "long.pdf"])
+    assert "cut to the character limit" in result.output
+    assert len(llm.calls[0]["user"]) < 8000
+
+
+@pytest.mark.parametrize("problem", ["missing", "not_pdf", "scanned"])
+def test_an_unusable_pdf_stops_before_any_model_call(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch, problem: str
+) -> None:
+    llm_ready(monkeypatch)
+    llm = use_llm(monkeypatch, FakeLLM([BRIEF_TEXT]))
+    if problem == "not_pdf":
+        (workdir / "x.pdf").write_text("plain text", encoding="utf-8")
+    elif problem == "scanned":
+        writer = PdfWriter()
+        writer.add_blank_page(width=612, height=792)
+        with (workdir / "x.pdf").open("wb") as handle:
+            writer.write(handle)
+    result = runner.invoke(app, ["brief", "--pdf", "x.pdf", "--about", "something"])
+    assert result.exit_code == 2
+    assert "x.pdf" in result.output
+    assert llm.calls == []
+    assert not (workdir / "project.md").exists()
