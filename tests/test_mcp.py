@@ -17,10 +17,10 @@ QUERY = "agent code review acceptance"
 
 
 class NoModel:
-    """The assistant judges the papers; any model call here is a bug."""
+    """These tests never score; any model call here is a bug."""
 
     def __call__(self, settings: Any) -> Any:
-        raise AssertionError("the MCP search must not call a model")
+        raise AssertionError("unexpected model call")
 
 
 @pytest.fixture
@@ -127,3 +127,50 @@ def test_stdio_loop_writes_only_protocol_lines(server: McpServer) -> None:
     replies = [json.loads(line) for line in out.getvalue().splitlines()]
     assert [r.get("id") for r in replies] == [1, None, 2]
     assert replies[1]["error"]["code"] == -32700
+
+
+def test_scoring_with_the_users_model_is_the_default_when_it_is_set_up(
+    server: McpServer, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sent: list[dict[str, Any]] = []
+
+    def fake_start(payload: dict[str, Any]) -> dict[str, Any]:
+        sent.append(payload)
+        return {"id": "j1", "run_id": 7}
+
+    monkeypatch.setattr(server.app, "start_run", fake_start)
+    env_file = server.app.env_file
+    # no key yet: scoring is off by default, and asking for it is a readable error
+    call(server, "start_search", queries=["a b"])
+    assert sent[-1]["scoring"] == {"enabled": False}
+    error, text = call(server, "start_search", queries=["a b"], score=True)
+    assert error and "Settings" in text
+    env_file.write_text("LLM_API_KEY=k\nL1_MODEL=cheap\n")
+    _, started = call(server, "start_search", queries=["a b"])
+    assert sent[-1]["scoring"] == {"enabled": True} and started["scoring"] is True
+    call(server, "start_search", queries=["a b"], score=False)
+    assert sent[-1]["scoring"] == {"enabled": False}
+
+
+def test_papers_of_a_scored_run_come_with_scores_and_can_be_filtered(
+    server: McpServer,
+) -> None:
+    from tests.pipeline.test_export import add_scores
+
+    _, started = call(server, "start_search", queries=[QUERY], profile="test")
+    for _ in range(200):
+        _, status = call(server, "search_status", job_id=started["job_id"])
+        if status["status"] != "running":
+            break
+        time.sleep(0.05)
+    conn = server.app.open_db()
+    add_scores(
+        conn, started["run_id"], {"A study of agent code review": (4, "on topic")}
+    )
+    _, papers = call(server, "get_papers", run_id=started["run_id"], min_score=4)
+    assert papers["scored"] is True and papers["total"] == 1
+    first = papers["papers"][0]
+    assert first["score"] == 4 and first["reason"] == "on topic" and first["summary"]
+    assert "abstract" not in first  # scored runs leave abstracts out by default
+    _, none = call(server, "get_papers", run_id=started["run_id"], min_score=5)
+    assert none["total"] == 0

@@ -28,11 +28,14 @@ LOG_TAIL = 12
 
 INSTRUCTIONS = (
     "Lit Search searches OpenAlex, Semantic Scholar and arXiv and merges "
-    "duplicates. Write a few focused English queries (2 to 5 for a normal topic), "
-    "call start_search, poll search_status until it is done, then read the papers "
-    "with get_papers and judge them yourself. Only report titles, authors, years, "
-    "venues, DOIs and links exactly as get_papers returns them; never invent or "
-    "complete them."
+    "duplicates. Write a few focused English queries (2 to 5 for a normal topic) and "
+    "show them to the user for approval BEFORE calling start_search. The user's "
+    "cheap scoring model reads the abstracts and scores the papers (0 to 5), so do "
+    "not read abstracts yourself: call get_papers with min_score (for example 4) "
+    "and work from the scores, reasons and summaries it returns; ask for more only "
+    "when needed. Poll search_status until it is done. Only report titles, authors, "
+    "years, venues, DOIs and links exactly as get_papers returns them; never "
+    "invent or complete them."
 )
 
 TOOLS: list[dict[str, Any]] = [
@@ -40,8 +43,9 @@ TOOLS: list[dict[str, Any]] = [
         "name": "start_search",
         "description": (
             "Start a literature search in the background and return a job id. "
-            "Takes a few minutes. Does not call any paid model. Use short, focused "
-            "English queries."
+            "Takes a few minutes. By default the papers are then scored 0 to 5 by "
+            "the user's own cheap model (set in Lit Search), which keeps your own "
+            "token use low. Ask the user to approve the queries first."
         ),
         "inputSchema": {
             "type": "object",
@@ -68,6 +72,13 @@ TOOLS: list[dict[str, Any]] = [
                     "items": {"type": "string", "enum": ["openalex", "s2", "arxiv"]},
                 },
                 "name": {"type": "string", "description": "Optional name of the run."},
+                "score": {
+                    "type": "boolean",
+                    "description": (
+                        "Score the papers with the user's cheap model. Default true "
+                        "when a scoring model is set up."
+                    ),
+                },
             },
             "required": ["queries"],
         },
@@ -84,8 +95,9 @@ TOOLS: list[dict[str, Any]] = [
     {
         "name": "get_papers",
         "description": (
-            "The papers of a finished run, best ranked first (found by several queries "
-            "and sources ranks higher). Fields come straight from the data sources."
+            "The papers of a finished run, best first. Scored runs return the score, "
+            "the query it fits best, a reason and a short summary written by the "
+            "scoring model; bibliographic fields come straight from the data sources."
         ),
         "inputSchema": {
             "type": "object",
@@ -93,7 +105,14 @@ TOOLS: list[dict[str, Any]] = [
                 "run_id": {"type": "integer"},
                 "limit": {"type": "integer", "description": "At most 100 per call."},
                 "offset": {"type": "integer"},
-                "with_abstract": {"type": "boolean", "description": "Default true."},
+                "min_score": {
+                    "type": "integer",
+                    "description": "Only papers scored at least this (0 to 5), e.g. 4.",
+                },
+                "with_abstract": {
+                    "type": "boolean",
+                    "description": "Default: false for scored runs, true otherwise.",
+                },
             },
             "required": ["run_id"],
         },
@@ -217,10 +236,20 @@ class McpServer:
     # --------------------------------------------------------------------- tools
 
     def _start_search(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        settings = self.app.settings()
+        ready = bool(settings.llm_api_key and settings.l1_model)
+        want = arguments.get("score")
+        if want is None:
+            want = ready
+        if want and not ready:
+            raise ToolError(
+                "Scoring needs an API key and a scoring model; set them on the "
+                "Settings tab of the Lit Search page, or call again with score=false."
+            )
         payload: dict[str, Any] = {
             "queries": arguments.get("queries"),
             "profile": arguments.get("profile") or DEFAULT_PROFILE,
-            "scoring": {"enabled": False},  # the assistant judges the papers itself
+            "scoring": {"enabled": bool(want)},
             "origin": "user",
         }
         for key in ("since", "sources", "name"):
@@ -234,6 +263,7 @@ class McpServer:
             "job_id": job["id"],
             "run_id": job["run_id"],
             "queries_used": used,
+            "scoring": bool(want),
             "note": "Poll search_status with the job_id, then call get_papers.",
         }
 
@@ -259,13 +289,21 @@ class McpServer:
         run_id = _int(arguments, "run_id", 0, 1, 10**9)
         limit = _int(arguments, "limit", 30, 1, MAX_PAPERS_PER_CALL)
         offset = _int(arguments, "offset", 0, 0, 10**6)
-        with_abstract = arguments.get("with_abstract", True) is not False
+        min_score = _int(arguments, "min_score", 0, 0, 5)
         conn = self.app.open_db()
         try:
-            candidates = export.load_candidates(conn, run_id)
+            candidates = export.load_candidates(
+                conn, run_id, self.app.settings().l1_model or None
+            )
             summary = export.load_summary(conn, run_id)
         except LookupError:
             raise ToolError(f"No run with id {run_id}") from None
+        scored = any(c.score is not None for c in candidates)
+        with_abstract = arguments.get("with_abstract", not scored) is not False
+        if min_score:
+            candidates = [
+                c for c in candidates if c.score is not None and c.score >= min_score
+            ]
         page = candidates[offset : offset + limit]
         papers = []
         for c in page:
@@ -284,6 +322,15 @@ class McpServer:
                 "found_by_queries": list(c.queries),
                 "sources": list(c.sources),
             }
+            if c.score is not None:
+                paper |= {
+                    "score": c.score,
+                    "fits_query": c.matched_query,
+                    "reason": c.reason,
+                    "summary": c.summary,
+                    "tags": list(c.tags),
+                    "scored_from": c.score_basis,
+                }
             if with_abstract:
                 text = c.abstract or ""
                 paper["abstract"] = (
@@ -296,6 +343,7 @@ class McpServer:
         return {
             "run": summary.name,
             "total": len(candidates),
+            "scored": scored,
             "offset": offset,
             "returned": len(papers),
             "source_problems": failed,

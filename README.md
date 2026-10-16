@@ -38,9 +38,10 @@ minutes after you close the page (or press Quit).
 ### Use it from Claude Desktop (chat)
 
 `litsearch mcp` lets the Claude Desktop app call Lit Search from a chat: you say "search the
-literature on ...", Claude writes the queries, the search runs on your own computer, and
-Claude reads the papers and judges them itself (no scoring model is called, so this path
-needs no API key). Add this to Claude Desktop's config file (Settings > Developer > Edit
+literature on ...", Claude writes the queries and asks you to approve them, the search runs on
+your own computer, and your own cheap scoring model (the `L1_MODEL` from `.env`) scores the
+papers, so Claude only reads the short list of scores and summaries and spends few of its own
+tokens. Without a scoring model set up, Claude judges the abstracts itself. Add this to Claude Desktop's config file (Settings > Developer > Edit
 Config), with the full path of `uv` (`which uv`) and of this folder, then restart the app:
 
 ```json
