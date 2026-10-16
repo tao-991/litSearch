@@ -14,6 +14,7 @@ Phase 1 progress:
 - [x] **1d** Retrieval pipeline: `litsearch run` / `litsearch status`, `--dry-run` estimate, confirmation, `--resume`, time limit, profiles
 - [x] **1e** Model access (Anthropic and OpenAI chat formats through one key and base URL, `litsearch check-llm`), `litsearch brief` (your words and PDFs become an editable brief), `litsearch queries` (the model writes the queries and decides how many), L1 scoring of title and abstract against the queries (`litsearch score`)
 - [x] **UI** `litsearch ui`: one command opens a local web page for settings, brief, queries, cost estimate, live progress, past runs and results (English only)
+- [x] **MCP** `litsearch mcp`: use Lit Search from a Claude Desktop chat
 - [ ] **1f** Snowballing, report, full command line, optional Google Scholar round
 
 ## Quick start
@@ -33,6 +34,29 @@ describe your research, check the brief and the queries, see the cost estimate, 
 search and watch it run, then open the ranked list. Earlier runs are on the "Past runs"
 tab. The size you pick (test, quick, standard, deep) also caps how many of your queries are searched; the page tells you when it cuts some. The page only listens on your own computer, and the program stops by itself a few
 minutes after you close the page (or press Quit).
+
+### Use it from Claude Desktop (chat)
+
+`litsearch mcp` lets the Claude Desktop app call Lit Search from a chat: you say "search the
+literature on ...", Claude writes the queries, the search runs on your own computer, and
+Claude reads the papers and judges them itself (no scoring model is called, so this path
+needs no API key). Add this to Claude Desktop's config file (Settings > Developer > Edit
+Config), with the full path of `uv` (`which uv`) and of this folder, then restart the app:
+
+```json
+{
+  "mcpServers": {
+    "lit-search": {
+      "command": "/full/path/to/uv",
+      "args": ["run", "--directory", "/full/path/to/litSearch", "litsearch", "mcp"],
+      "env": { "LITSEARCH_HOME": "/full/path/to/litSearch" }
+    }
+  }
+}
+```
+
+Tools: `start_search`, `search_status`, `get_papers`, `list_runs`, `save_results`. Titles,
+authors, years, DOIs and links are passed on exactly as the data sources returned them.
 
 ### The command line
 

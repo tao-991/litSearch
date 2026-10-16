@@ -3,7 +3,7 @@
 Read `SPEC.md` first. It is the single source of truth for requirements and design; if something conflicts with it, ask the user before changing direction.
 
 ## Tech stack (version 1)
-Python 3.12 · Typer (CLI) · httpx (async) · SQLite (`sqlite3`) · pypdf (text of the first pages of PDFs) · a small httpx-based model client that speaks the Anthropic and the OpenAI chat formats (no vendor SDK) · pytest · ruff. Version 1 has a local web page (`litsearch ui`, standard-library server) but no scheduler or Docker.
+Python 3.12 · Typer (CLI) · httpx (async) · SQLite (`sqlite3`) · pypdf (text of the first pages of PDFs) · a small httpx-based model client that speaks the Anthropic and the OpenAI chat formats (no vendor SDK) · pytest · ruff. Version 1 has a local web page (`litsearch ui`, standard-library server) a small hand-written MCP server (`litsearch mcp`, stdio, for Claude Desktop), but no scheduler or Docker.
 
 ## Workflow
 - Work in phases per SPEC §11. Before each phase, give the user a short plan; after it, run the acceptance checklist, update the docs and commit.

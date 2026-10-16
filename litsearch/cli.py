@@ -908,6 +908,16 @@ def ui(
     )
 
 
+@app.command("mcp")
+def mcp() -> None:
+    """Let a chat assistant (such as Claude Desktop) use Lit Search; started by it."""
+    from litsearch.mcp_server import serve_stdio
+    from litsearch.paths import app_home
+    from litsearch.ui.app import UiApp
+
+    serve_stdio(UiApp(app_home()))
+
+
 @app.command("check-llm")
 def check_llm(
     list_models: Annotated[
