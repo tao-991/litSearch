@@ -152,7 +152,10 @@ def test_an_unscored_run_lists_candidates_without_scores(filled) -> None:  # noq
     page = html_of(conn, run_id)
     assert "Not scored." in page
     assert "<h2>Candidates</h2>" in page
-    assert 'data-score="-1"' in page and ">\u2013</div>" in page
+    assert ">\u2013</div>" in page
+    # the page's filter hides cards below the selected minimum (here 0): an
+    # unscored card must not carry a negative score or the whole list is hidden
+    assert 'data-score="-1"' not in page and 'data-score="0"' in page
     assert '<option value="0" selected>' in page
     assert "Possibly relevant" not in page and 'class="toc"' not in page
 

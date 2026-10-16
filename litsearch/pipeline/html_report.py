@@ -204,7 +204,7 @@ def _card(c: Candidate, *, show_found_by: bool = True) -> str:
             found += f" · best rank {c.best_rank}"
         rows.append(f'<p class="foot">{found}</p>')
     return (
-        f'<article class="paper s{max(score, 0)}" data-score="{score}" '
+        f'<article class="paper s{max(score, 0)}" data-score="{max(score, 0)}" '
         f'data-text="{_search_text(c)}">'
         f'<div class="score" title="score {badge} of {MAX_SCORE}">{badge}</div>'
         f'<div class="body">{"".join(rows)}</div></article>'
