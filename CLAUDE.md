@@ -23,5 +23,5 @@ Python 3.12 · Typer (CLI) · httpx (async) · SQLite (`sqlite3`) · Anthropic S
 - Introducing Celery / Redis / Postgres / vector stores / web frameworks (unless the user agrees first).
 - Frequent or concurrent requests to Google Scholar.
 
-## Common commands (to be filled in once implemented)
-`litsearch run` · `litsearch report` · `make test` · `make lint`
+## Common commands
+`make sync` (install) · `make test` (pytest) · `make lint` (ruff check + ruff format --check) · `make format` · `litsearch --version`. The `litsearch run` and `litsearch report` commands arrive in later steps of Phase 1.

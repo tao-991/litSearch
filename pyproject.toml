@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "litsearch"
+dynamic = ["version"]
+description = "Deep, multi-source, auditable literature search for a research project."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = [
+    "httpx>=0.27",
+    "typer>=0.12",
+]
+
+[project.scripts]
+litsearch = "litsearch.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+]
+
+[tool.hatch.version]
+path = "litsearch/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["litsearch"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+extend-exclude = ["spikes/samples"]
+
+[tool.ruff.format]
+# Code blocks in Markdown are illustrative pseudo-code, not runnable Python.
+exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "BLE", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+# Throwaway measurement scripts: they put their own folder on sys.path before
+# importing, and long lines / short names are not worth fixing there.
+"spikes/*" = ["E402", "E501", "E741"]

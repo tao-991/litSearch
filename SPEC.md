@@ -127,15 +127,16 @@ RRI (`nhdandz/RRI`, MIT) `src/collectors/base.py` (RateLimiter, CircuitBreaker, 
 
 ## 5. Data model and de-duplication
 
-### 5.1 SQLite tables (suggested, may be tuned)
+### 5.1 SQLite tables (as implemented in `litsearch/db.py`, schema version 1)
 
-- **runs**: id, project_hash, params (JSON), status, started_at, finished_at.
-- **queries**: run_id, text, origin (`llm`/`user`), source, n_hits, n_relevant.
-- **papers**: id, title, abstract, authors (JSON), year, date, venue, doi, arxiv_id, per-source IDs, citation_count, links (JSON), oa_pdf_url, state (`candidate`/`scored`/`dismissed`/...).
-- **hits**: run_id, query_id, source, paper_id, rank, round.
-- **scores**: paper_id, project_hash, prompt_version, model, score, reason, summary, tags (JSON).
+- **runs**: id, project_hash, params (JSON), status (`running`/`completed`/`failed`/`interrupted`), started_at, finished_at.
+- **queries**: id, run_id, text, origin (`llm`/`user`); unique per (run, text). Hit counts and "effective hit" counts per query and source are **derived** from `hits` and `scores` rather than stored.
+- **papers**: id, title, abstract, authors (JSON), year, date, venue, doi, arxiv_id, openalex_id, s2_id, citation_count, links (JSON), oa_pdf_url, state (`candidate`/`scored`/`dismissed`/...). `doi` and `arxiv_id` hold the normalized values of §5.2; each ID column is unique when present, so the database itself rejects duplicates. Papers are shared across runs.
+- **paper_records**: id, paper_id, source, source_id, raw (JSON of the source's record), fetched_at; unique per (source, source_id). Keeps every version and source of a merged paper.
+- **hits**: id, run_id, query_id (NULL for papers found by snowballing), source, paper_id, rank, round.
+- **scores** (the LLM result cache): paper_id, project_hash, input_hash (hash of the title and abstract that were scored), prompt_version, model, score, reason, summary, tags (JSON); the primary key is (paper_id, project_hash, input_hash, prompt_version, model).
 - **edges**: src_paper_id, dst_paper_id, kind (`cites`).
-- **source_runs**: run_id, source, status (`ok`/`blocked`/`rate_limited`/`error`/`skipped`), n_requests, n_results, error. **This is the key to "failures are visible" and must appear in the report.**
+- **source_runs**: id, run_id, source, status (`ok`/`blocked`/`rate_limited`/`error`/`skipped`), n_requests, n_results, error; unique per (run, source). **This is the key to "failures are visible" and must appear in the report.**
 
 ### 5.2 De-duplication rules
 
