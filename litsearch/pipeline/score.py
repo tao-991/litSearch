@@ -219,7 +219,8 @@ def _store(
             "ON CONFLICT(paper_id, project_hash, input_hash, prompt_version, model) "
             "DO UPDATE SET score = excluded.score, reason = excluded.reason, "
             "summary = excluded.summary, tags = excluded.tags, "
-            "matched_query = excluded.matched_query, basis = excluded.basis",
+            "matched_query = excluded.matched_query, basis = excluded.basis, "
+            "created_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')",
             (
                 paper.paper_id,
                 ctx,

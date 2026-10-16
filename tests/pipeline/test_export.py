@@ -349,3 +349,83 @@ def test_a_paper_judged_by_its_title_says_so(
     path = tmp_path / "c.md"
     write_markdown(load_candidates(conn, run_id), load_summary(conn, run_id), path)
     assert "(based on the title only, no abstract)" in path.read_text(encoding="utf-8")
+
+
+def add_model_scores(
+    conn: sqlite3.Connection,
+    model: str,
+    prompt_version: str,
+    scores: dict[str, int],
+) -> None:
+    queries = [r[0] for r in conn.execute("SELECT text FROM queries ORDER BY id")]
+    ctx = context_hash(queries)
+    with conn:
+        for title, score in scores.items():
+            paper_id = conn.execute(
+                "SELECT id FROM papers WHERE title = ?", (title,)
+            ).fetchone()[0]
+            conn.execute(
+                "INSERT INTO scores (paper_id, project_hash, input_hash, "
+                "prompt_version, model, score, reason, summary, tags) "
+                "VALUES (?, ?, 'i', ?, ?, ?, 'r', 's', '[]')",
+                (paper_id, ctx, prompt_version, model, score),
+            )
+
+
+def test_the_list_uses_one_model_never_a_mix(
+    filled: tuple[sqlite3.Connection, int],
+) -> None:
+    conn, run_id = filled
+    add_model_scores(
+        conn,
+        "old-model",
+        "v1",
+        {"Trust In Automation": 5, "Agents That Review Code": 5},
+    )
+    add_model_scores(
+        conn, "new-model", "v1", {"Trust In Automation": 1}
+    )  # scored later, only one
+    candidates = {c.title: c for c in load_candidates(conn, run_id)}
+    assert candidates["Trust In Automation"].score == 1.0
+    assert (
+        candidates["Agents That Review Code"].score is None
+    )  # old-model score is ignored
+    summary = load_summary(conn, run_id)
+    assert summary.scored_by == "new-model, prompt v1"
+    assert summary.n_scored == 1
+
+
+def test_the_configured_model_is_preferred_over_a_newer_one(
+    filled: tuple[sqlite3.Connection, int],
+) -> None:
+    conn, run_id = filled
+    add_model_scores(
+        conn, "mine", "v1", {"Trust In Automation": 5, "Agents That Review Code": 4}
+    )
+    add_model_scores(conn, "other", "v1", {"Trust In Automation": 1})
+    mine = {c.title: c.score for c in load_candidates(conn, run_id, "mine")}
+    assert mine["Trust In Automation"] == 5.0 and mine["Agents That Review Code"] == 4.0
+    assert load_summary(conn, run_id, "mine").scored_by == "mine, prompt v1"
+    # an unknown preference falls back to the most recent scores
+    fallback = {c.title: c.score for c in load_candidates(conn, run_id, "nobody")}
+    assert fallback["Trust In Automation"] == 1.0
+
+
+def test_the_newest_prompt_version_of_a_model_is_used(
+    filled: tuple[sqlite3.Connection, int],
+) -> None:
+    conn, run_id = filled
+    add_model_scores(conn, "m", "v1", {"Trust In Automation": 2})
+    add_model_scores(conn, "m", "v2", {"Trust In Automation": 4})
+    assert load_candidates(conn, run_id, "m")[0].score == 4.0
+    assert load_summary(conn, run_id, "m").scored_by == "m, prompt v2"
+
+
+def test_the_markdown_says_which_model_scored(
+    filled: tuple[sqlite3.Connection, int], tmp_path: Path
+) -> None:
+    conn, run_id = filled
+    add_model_scores(conn, "gpt-4.1-nano", "score-v3", {"Trust In Automation": 5})
+    path = tmp_path / "c.md"
+    write_markdown(load_candidates(conn, run_id), load_summary(conn, run_id), path)
+    assert "by `gpt-4.1-nano, prompt score-v3`" in path.read_text(encoding="utf-8")

@@ -318,10 +318,11 @@ def _write_outputs(
     top: int,
     min_score: int,
     maybe_score: int,
+    prefer_model: str | None = None,
 ) -> tuple[export.RunSummary, Path]:
     folder = out_dir / run_name(conn, run_id)
-    candidates = export.load_candidates(conn, run_id)
-    summary = export.load_summary(conn, run_id)
+    candidates = export.load_candidates(conn, run_id, prefer_model)
+    summary = export.load_summary(conn, run_id, prefer_model)
     export.write_csv(candidates, folder / "candidates.csv")
     export.write_markdown(
         candidates,
@@ -701,6 +702,7 @@ def run(
         top=top,
         min_score=scoring.min_score,
         maybe_score=scoring.maybe_score,
+        prefer_model=scoring.model or None,
     )
     typer.echo("")
     for line in _result_lines(summary, result):
@@ -924,6 +926,7 @@ def score(
         top=top,
         min_score=opts.min_score,
         maybe_score=opts.maybe_score,
+        prefer_model=opts.model,
     )
     if result is not None:
         for line in _score_lines(result, opts, run_id):
@@ -953,13 +956,16 @@ def status(
     if chosen is None:
         raise _fail("there are no runs yet", code=1)
     try:
-        summary = export.load_summary(conn, chosen)
+        summary = export.load_summary(conn, chosen, settings.l1_model)
     except LookupError as exc:
         raise _fail(str(exc), code=1) from None
     typer.echo(f"{summary.name} (id {summary.run_id}): {summary.status}")
     typer.echo(f"Started {summary.started_at}, finished {summary.finished_at or '-'}")
     typer.echo(f"{_queries(summary.n_queries)}, {summary.n_papers} distinct papers")
-    typer.echo(f"Scored by the model: {summary.n_scored} of {summary.n_papers} papers")
+    by = f" (by {summary.scored_by})" if summary.scored_by else ""
+    typer.echo(
+        f"Scored by the model: {summary.n_scored} of {summary.n_papers} papers{by}"
+    )
     typer.echo("Sources:")
     for s in summary.sources:
         note = f"  ({s.error})" if s.error else ""

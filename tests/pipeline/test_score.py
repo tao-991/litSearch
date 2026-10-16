@@ -467,3 +467,25 @@ def test_replies_cut_off_by_the_output_limit_are_counted(
     db.init_schema(fresh)
     both_cut = run_scoring(fresh, make_run(fresh, 1)[0], FakeLLM([cut, cut]))
     assert both_cut.n_cut_off == 2 and both_cut.n_failed == 1
+
+
+def test_rescoring_the_same_pair_makes_it_the_newest(conn: sqlite3.Connection) -> None:
+    run_id, _ = make_run(conn, 1)
+    run_scoring(conn, run_id, FakeLLM([reply(entry(1, 3))]))
+    with conn:
+        conn.execute("UPDATE scores SET created_at = '2000-01-01T00:00:00.000Z'")
+    # a score written again (here through the same key) gets a fresh timestamp
+    from litsearch.pipeline.score import ParsedScore, _store
+
+    paper = PaperToScore(1, "Paper number 1 about agents", "Abstract 1.")
+    paper_id = conn.execute("SELECT id FROM papers").fetchone()[0]
+    _store(
+        conn,
+        PaperToScore(paper_id, paper.title, paper.abstract),
+        ParsedScore(4, 1, "r", "s", ()),
+        ["code review agents", "trust automation"],
+        context_hash(["code review agents", "trust automation"]),
+        "Chinese",
+        "m1",
+    )
+    assert conn.execute("SELECT created_at FROM scores").fetchone()[0] > "2020"

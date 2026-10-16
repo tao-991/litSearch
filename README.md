@@ -43,7 +43,7 @@ uv run litsearch status        # sources, queries, papers found and scored
 open out/run-0001/candidates.md      # ranked list; candidates.csv has every paper with its abstract
 ```
 
-Papers are scored by the model after the search (use `--no-score` to skip it; `litsearch score RUN_ID` scores later and can rewrite the lists with other thresholds at no cost). The score is relative to your queries: a paper is relevant if it addresses at least one of them. Scores 4 and 5 form the main list, 3 is "possibly relevant" (collapsed), lower scores are listed with their reason. Summaries are based on the title and abstract only. Small models score generously, so read the list as a screening aid.
+Papers are scored by the model after the search (use `--no-score` to skip it; `litsearch score RUN_ID` scores later and can rewrite the lists with other thresholds at no cost). The score is relative to your queries: a paper is relevant if it addresses at least one of them. Scores 4 and 5 form the main list, 3 is "possibly relevant" (collapsed), lower scores are listed with their reason. Summaries are based on the title and abstract only. Small models score generously, so read the list as a screening aid. The list always shows the scores of one model (the one set as `L1_MODEL` if it has scored the run, otherwise the one that scored last), never a mix, and its header says which.
 
 `litsearch run --project project.md` does step 2 and 3 in one go (the queries are cached, so a repeat costs nothing). You can also skip the model and give queries yourself: `litsearch run -q "first query" -q "second query"`.
 

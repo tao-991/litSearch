@@ -68,10 +68,19 @@ class RunSummary:
     n_scored: int
     sources: list[SourceLine]
     queries: list[tuple[str, dict[str, int]]]  # query text -> hits per source
+    scored_by: str | None = None  # "model, prompt version" of the scores shown
 
 
-def _run_scores(conn: sqlite3.Connection, run_id: int) -> dict[int, sqlite3.Row]:
-    """The latest score of each paper for this run's query set."""
+def _run_scores(
+    conn: sqlite3.Connection, run_id: int, prefer_model: str | None = None
+) -> tuple[dict[int, sqlite3.Row], str | None]:
+    """The scores of this run's query set from ONE model and prompt version, by paper,
+    and a label saying which.
+
+    The scores of ``prefer_model`` (the model the user has configured) are used when
+    there are any, otherwise those of the model that scored most recently. Scores of
+    other models or prompt versions are ignored, so the list is never a mix.
+    """
     queries = [
         r["text"]
         for r in conn.execute(
@@ -79,17 +88,37 @@ def _run_scores(conn: sqlite3.Connection, run_id: int) -> dict[int, sqlite3.Row]
         )
     ]
     if not queries:
-        return {}
-    latest: dict[int, sqlite3.Row] = {}
-    for row in conn.execute(
-        "SELECT * FROM scores WHERE project_hash = ? ORDER BY created_at",
-        (context_hash(queries),),
-    ):
-        latest[row["paper_id"]] = row
-    return latest
+        return {}, None
+    ctx = context_hash(queries)
+    newest = None
+    if prefer_model:
+        newest = conn.execute(
+            "SELECT model, prompt_version FROM scores WHERE project_hash = ? "
+            "AND model = ? ORDER BY created_at DESC, rowid DESC LIMIT 1",
+            (ctx, prefer_model),
+        ).fetchone()
+    if newest is None:
+        newest = conn.execute(
+            "SELECT model, prompt_version FROM scores WHERE project_hash = ? "
+            "ORDER BY created_at DESC, rowid DESC LIMIT 1",
+            (ctx,),
+        ).fetchone()
+    if newest is None:
+        return {}, None
+    rows = {
+        r["paper_id"]: r
+        for r in conn.execute(
+            "SELECT * FROM scores WHERE project_hash = ? AND model = ? "
+            "AND prompt_version = ?",
+            (ctx, newest["model"], newest["prompt_version"]),
+        )
+    }
+    return rows, f"{newest['model']}, prompt {newest['prompt_version']}"
 
 
-def load_candidates(conn: sqlite3.Connection, run_id: int) -> list[Candidate]:
+def load_candidates(
+    conn: sqlite3.Connection, run_id: int, prefer_model: str | None = None
+) -> list[Candidate]:
     """Every paper the run found, best first."""
     papers = {
         r["id"]: r
@@ -113,7 +142,7 @@ def load_candidates(conn: sqlite3.Connection, run_id: int) -> list[Candidate]:
             queries.setdefault(pid, {})[h["text"]] = None
         if h["rank"] is not None:
             best[pid] = min(best.get(pid, h["rank"]), h["rank"])
-    scores = _run_scores(conn, run_id)
+    scores, _ = _run_scores(conn, run_id, prefer_model)
 
     found = []
     for pid, row in papers.items():
@@ -156,7 +185,9 @@ def load_candidates(conn: sqlite3.Connection, run_id: int) -> list[Candidate]:
     return found
 
 
-def load_summary(conn: sqlite3.Connection, run_id: int) -> RunSummary:
+def load_summary(
+    conn: sqlite3.Connection, run_id: int, prefer_model: str | None = None
+) -> RunSummary:
     run = db.get_run(conn, run_id)
     if run is None:
         raise LookupError(f"no run with id {run_id}")
@@ -184,7 +215,8 @@ def load_summary(conn: sqlite3.Connection, run_id: int) -> RunSummary:
             "SELECT DISTINCT paper_id FROM hits WHERE run_id = ?", (run_id,)
         )
     }
-    scored = paper_ids & set(_run_scores(conn, run_id))
+    score_rows, score_label = _run_scores(conn, run_id, prefer_model)
+    scored = paper_ids & set(score_rows)
     return RunSummary(
         run_id=run_id,
         name=run["name"] or f"run-{run_id:04d}",
@@ -196,6 +228,7 @@ def load_summary(conn: sqlite3.Connection, run_id: int) -> RunSummary:
         n_scored=len(scored),
         sources=[SourceLine(**dict(r)) for r in source_rows],
         queries=list(per_query.items()),
+        scored_by=score_label if scored else None,
     )
 
 
@@ -338,9 +371,10 @@ def write_markdown(
     ]
     if scored:
         lines += [
-            f"Scored {len(scored)} of {len(candidates)} papers from 0 to {MAX_SCORE}, "
-            "relative to the queries below (a paper is relevant if it addresses at "
-            "least one of them). Summaries and reasons are written by a model from the "
+            f"Scored {len(scored)} of {len(candidates)} papers from 0 to {MAX_SCORE} "
+            f"by `{summary.scored_by}`, relative to the queries below (a paper is "
+            "relevant if it addresses at least one of them). Summaries and reasons "
+            "are written by a model from the "
             "title and abstract only; links, DOIs, authors and years come from the "
             "data sources.",
             "",
