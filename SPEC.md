@@ -189,7 +189,7 @@ Hard rule: **every link, DOI, author and year must come from fields returned by 
 
 ## 7. Later phases (not in version 1, but keep interfaces compatible)
 
-- **Phase 2**: L2 skimming and PDFs. PDF acquisition order: download directly when an arXiv ID exists; otherwise use the open-access link from OpenAlex/S2; if neither exists mark `need_manual` and let the user upload. Rate-limit downloads and validate the file header and size. Close reading uses Claude's PDF support (verified 2026-10): `document` blocks accept URL / base64 / Files API; each page is processed as both text and image; request body ≤ 32 MB, ≤ 100 pages (up to 600 with a 1M-token context window); about 1,500–3,000 text tokens per page, images counted separately. Enabling `citations` yields page numbers and quoted passages, but **using it together with structured JSON output returns 400**, so work in two steps: first read freely with citations, then organize into fixed fields without citations. Scanned files without a text layer cannot be cited. Note-cache keys include the PDF's sha256.
+- **Phase 2**: L2 skimming and PDFs. PDF acquisition order: download directly when an arXiv ID exists; otherwise use the open-access link from OpenAlex/S2; if neither exists mark `need_manual` and let the user upload. Rate-limit downloads and validate the file header and size. Close reading with a Claude model can use Claude's native PDF support; with other models the PDF text is extracted locally first (a text-extraction dependency, to be agreed before it is added). Claude's PDF support (verified 2026-10): `document` blocks accept URL / base64 / Files API; each page is processed as both text and image; request body ≤ 32 MB, ≤ 100 pages (up to 600 with a 1M-token context window); about 1,500–3,000 text tokens per page, images counted separately. Enabling `citations` yields page numbers and quoted passages, but **using it together with structured JSON output returns 400**, so work in two steps: first read freely with citations, then organize into fixed fields without citations. Scanned files without a text layer cannot be cited. Note-cache keys include the PDF's sha256.
 - **Phase 3**: scheduled monitoring (incremental retrieval per topic + digest), cross-paper Q&A (read notes first, then the originals), review generation, publication-status re-check, Google Scholar alert e-mail approach, Obsidian / web UI.
 
 ## 8. Risks and mitigations
@@ -228,9 +228,12 @@ litsearch queries RUN_ID               # export / view queries and their effecti
 CONTACT_EMAIL=                    # used in the User-Agent and the OpenAlex mailto parameter (identifier only)
 OPENALEX_API_KEY=                 # recommended; raises the daily quota tenfold
 S2_API_KEY=                       # optional
-ANTHROPIC_API_KEY=                # the key of the API or of the relay in use
-ANTHROPIC_BASE_URL=               # optional; base URL of an Anthropic-compatible relay (empty = official API)
-L1_MODEL=                         # cheap model for L1 scoring; names depend on the API/relay, verify against its model list
+LLM_API_KEY=                      # key of the model API or of the relay in use
+LLM_BASE_URL=                     # optional; base URL of an API relay, with or without /v1 (empty = official APIs)
+LLM_API_FORMAT=                   # optional: auto (default), anthropic or openai
+ANTHROPIC_API_KEY=                # older name of LLM_API_KEY, still accepted
+ANTHROPIC_BASE_URL=               # older name of LLM_BASE_URL, still accepted
+L1_MODEL=                         # cheap model for L1 scoring, exactly as the API or relay names it
 QUERY_MODEL=                      # stronger model for query generation; same note
 DATA_DIR=                         # default ./data
 HTTPS_PROXY=
@@ -238,11 +241,11 @@ GS_MIN_DELAY=                     # default 10
 GS_MAX_DELAY=                     # default 30
 ```
 
-The model client (Phase 1e) is built from `ANTHROPIC_API_KEY` and `ANTHROPIC_BASE_URL`; model IDs are never hard-coded, because an API relay may expose different model names.
+Model access (`litsearch/llm/`, check it with `litsearch check-llm`): with `LLM_API_FORMAT=auto` a model whose name starts with `claude` is called in the Anthropic message format (`POST <root>/v1/messages`) and every other model in the OpenAI chat format (`POST <root>/v1/chat/completions`), where `<root>` is `LLM_BASE_URL` without a trailing `/v1`. Model IDs are never hard-coded, because an API relay may expose different names. Phase 1 findings that shape the prompts: some small models are *reasoning* models (for example `gpt-5-nano`) and spend their output tokens on hidden reasoning, so a small `max_tokens` yields an empty reply; scoring calls must either use a non-reasoning model or leave enough token budget. JSON mode (`response_format`) exists only in the OpenAI format; in the Anthropic format the prompt must ask for JSON and the reply must be validated either way.
 
 ## 10. Tech stack and layout
 
-Python 3.12; Typer (CLI); httpx (async); SQLite (standard `sqlite3` with a thin wrapper is enough); Anthropic SDK; pytest; ruff. Version 1 needs no web framework or scheduler, and no Docker (added later).
+Python 3.12; Typer (CLI); httpx (async); SQLite (standard `sqlite3` with a thin wrapper is enough); a small httpx-based model client (`litsearch/llm/`) that speaks both the Anthropic message format and the OpenAI chat format, so that one key and base URL can serve Claude, GPT, Gemini, DeepSeek and other models offered by an API relay (no vendor SDK); pytest; ruff. Version 1 needs no web framework or scheduler, and no Docker (added later).
 
 ```
 lit-search/

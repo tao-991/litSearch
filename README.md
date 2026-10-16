@@ -12,7 +12,7 @@ Phase 1 progress:
 - [x] **1b** Collectors for OpenAlex, Semantic Scholar and arXiv (offline-tested; smoke-tested against the real services)
 - [x] **1c** De-duplication (merges the same paper found by different sources or queries)
 - [x] **1d** Retrieval pipeline: `litsearch run` / `litsearch status`, `--dry-run` estimate, confirmation, `--resume`, time limit, profiles
-- [ ] **1e** Model client, query generation from free text or PDFs, L1 scoring
+- [ ] **1e** Model access, query generation from free text or PDFs, L1 scoring. *Done so far:* a model client that speaks both the Anthropic and the OpenAI chat format (so Claude, GPT, Gemini, DeepSeek, ... all work through one key and base URL) and `litsearch check-llm` to test your settings. *Still to do:* query generation, PDF input, scoring.
 - [ ] **1f** Snowballing, report, full command line, optional Google Scholar round
 
 ## Quick start
@@ -34,6 +34,9 @@ uv run litsearch run -q "human-in-the-loop software development agents" \
 # 3. look at the result
 uv run litsearch status        # sources, queries, papers found
 open out/run-0001/candidates.md      # or candidates.csv (all papers, with abstracts)
+
+# optional: check your model settings (LLM_API_KEY, LLM_BASE_URL, L1_MODEL, QUERY_MODEL in .env)
+uv run litsearch check-llm
 ```
 
 Useful options (see `litsearch run --help`): `--queries-file FILE` (one query per line, `#` for comments), `--profile quick|standard|deep` (how much to search; `quick` is the default), `--per-query N`, `--sources openalex,s2,arxiv`, `--openalex-mode title-abstract|fulltext|both`, `--since 2024-01-01`, `--max-minutes N` (stop cleanly at the limit), `--name NAME`, and `--resume RUN_ID` to continue an interrupted run or to retry the fetches that failed. A failing source (Semantic Scholar often is rate-limited without an API key) is reported but never stops the run.
@@ -117,7 +120,12 @@ Raw responses are written to `spikes/samples/` (gitignored). Please keep the req
 
 ## Configuration
 
-Everything tunable goes through environment variables or CLI flags; nothing is hard-coded. See [`.env.example`](.env.example), which lists every variable the program reads: `CONTACT_EMAIL` (identifier in the `User-Agent` header and the OpenAlex `mailto` parameter, optional), `OPENALEX_API_KEY` (recommended, free), `S2_API_KEY` (optional), `DATA_DIR` (default `./data`), `HTTPS_PROXY`, and for the model-based steps of later phases `ANTHROPIC_API_KEY`, **`ANTHROPIC_BASE_URL`** (set it to use an Anthropic-compatible API relay instead of the official API) and the model names `L1_MODEL` / `QUERY_MODEL` (use the names your API or relay offers). Searching needs none of the Anthropic settings. Never commit `.env`.
+Everything tunable goes through environment variables or CLI flags; nothing is hard-coded. See [`.env.example`](.env.example), which lists every variable the program reads (a test keeps it in sync):
+
+- Data sources: `CONTACT_EMAIL` (identifier in the `User-Agent` header and the OpenAlex `mailto` parameter, optional), `OPENALEX_API_KEY` (recommended, free), `S2_API_KEY` (optional), `HTTPS_PROXY`, `DATA_DIR` (default `./data`).
+- Models (needed only for the model-based steps of later phases; searching needs none of them): `LLM_API_KEY`, `LLM_BASE_URL` (an API relay, with or without `/v1`; empty means the official APIs), `L1_MODEL` (cheap model that scores papers) and `QUERY_MODEL` (stronger model that writes queries), exactly as your API or relay names them. With the default `LLM_API_FORMAT=auto`, model names starting with `claude` are called in the Anthropic message format and all others (`gpt-*`, `gemini-*`, `deepseek-*`, ...) in the OpenAI chat format, so one key and one base URL can serve both. `ANTHROPIC_API_KEY` / `ANTHROPIC_BASE_URL` still work as older names. Run `litsearch check-llm` to test the settings and, if a model is rejected, to see which names the endpoint offers.
+
+Never commit `.env`.
 
 ## Scope and etiquette
 

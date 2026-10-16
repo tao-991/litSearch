@@ -75,7 +75,7 @@ def test_reads_all_fields(tmp_path: Path) -> None:
             "CONTACT_EMAIL": "me@example.org",
             "OPENALEX_API_KEY": "oa",
             "S2_API_KEY": "s2",
-            "ANTHROPIC_API_KEY": "an",
+            "LLM_API_KEY": "an",
             "L1_MODEL": "cheap-model",
             "QUERY_MODEL": "strong-model",
             "GS_MIN_DELAY": "1.5",
@@ -89,7 +89,7 @@ def test_reads_all_fields(tmp_path: Path) -> None:
         "oa",
         "s2",
     )
-    assert s.anthropic_api_key == "an"
+    assert s.llm_api_key == "an"
     assert (s.l1_model, s.query_model) == ("cheap-model", "strong-model")
     assert (s.gs_min_delay, s.gs_max_delay) == (1.5, 2.5)
     assert s.https_proxy == "http://proxy:8080"
@@ -102,7 +102,7 @@ def test_secrets_are_not_in_repr() -> None:
             "CONTACT_EMAIL": "private@example.org",
             "OPENALEX_API_KEY": "secret-oa",
             "S2_API_KEY": "secret-s2",
-            "ANTHROPIC_API_KEY": "secret-an",
+            "LLM_API_KEY": "secret-an",
             "L1_MODEL": "some-model",
         }
     )
@@ -122,26 +122,54 @@ def test_min_delay_must_not_exceed_max_delay() -> None:
         Settings.from_env(environ={"GS_MIN_DELAY": "30", "GS_MAX_DELAY": "10"})
 
 
-def test_anthropic_base_url_is_read_and_kept_out_of_repr() -> None:
-    s = Settings.from_env(
-        environ={"ANTHROPIC_BASE_URL": " https://relay.example.com/v1 "}
-    )
-    assert s.anthropic_base_url == "https://relay.example.com/v1"
+def test_llm_base_url_is_read_and_kept_out_of_repr() -> None:
+    s = Settings.from_env(environ={"LLM_BASE_URL": " https://relay.example.com/v1 "})
+    assert s.llm_base_url == "https://relay.example.com/v1"
     assert "relay.example.com" not in repr(s)
-    assert Settings.from_env(environ={}).anthropic_base_url is None
+    assert Settings.from_env(environ={}).llm_base_url is None
 
 
+def test_the_older_anthropic_names_still_work_and_the_new_ones_win() -> None:
+    old = Settings.from_env(
+        environ={
+            "ANTHROPIC_API_KEY": "old-key",
+            "ANTHROPIC_BASE_URL": "https://old.example",
+        }
+    )
+    assert (old.llm_api_key, old.llm_base_url) == ("old-key", "https://old.example")
+    both = Settings.from_env(
+        environ={
+            "ANTHROPIC_API_KEY": "old-key",
+            "LLM_API_KEY": "new-key",
+            "ANTHROPIC_BASE_URL": "https://old.example",
+            "LLM_BASE_URL": "https://new.example",
+        }
+    )
+    assert (both.llm_api_key, both.llm_base_url) == ("new-key", "https://new.example")
+
+
+@pytest.mark.parametrize("variable", ["LLM_BASE_URL", "ANTHROPIC_BASE_URL"])
 @pytest.mark.parametrize("bad", ["relay.example.com", "ftp://relay.example.com", "/v1"])
-def test_anthropic_base_url_must_be_an_http_url(bad: str) -> None:
-    with pytest.raises(ValueError, match="ANTHROPIC_BASE_URL"):
-        Settings.from_env(environ={"ANTHROPIC_BASE_URL": bad})
+def test_base_url_must_be_an_http_url(variable: str, bad: str) -> None:
+    with pytest.raises(ValueError, match=variable):
+        Settings.from_env(environ={variable: bad})
+
+
+def test_api_format_defaults_to_auto_and_is_validated() -> None:
+    assert Settings.from_env(environ={}).llm_api_format == "auto"
+    assert (
+        Settings.from_env(environ={"LLM_API_FORMAT": "OpenAI"}).llm_api_format
+        == "openai"
+    )
+    with pytest.raises(ValueError, match="LLM_API_FORMAT"):
+        Settings.from_env(environ={"LLM_API_FORMAT": "gemini"})
 
 
 def test_env_example_lists_every_variable_the_settings_read() -> None:
     """Regression guard for the rule that .env.example stays current."""
     source = (REPO_ROOT / "litsearch" / "config.py").read_text(encoding="utf-8")
     read = set(re.findall(r'_(?:opt|float)\(merged, "([A-Z0-9_]+)"', source))
-    assert "ANTHROPIC_BASE_URL" in read  # the pattern really finds variables
+    assert {"LLM_BASE_URL", "ANTHROPIC_BASE_URL"} <= read  # the pattern finds variables
     documented = set(
         parse_env_file((REPO_ROOT / ".env.example").read_text(encoding="utf-8"))
     )

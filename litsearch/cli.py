@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import sqlite3
+import time
 from datetime import date
 from pathlib import Path
 from typing import Annotated, Any
+from urllib.parse import urlparse
 
 import typer
 
@@ -14,6 +16,7 @@ from litsearch import __version__, db
 from litsearch.collectors import SOURCE_NAMES, build_client, build_collectors
 from litsearch.collectors.base import CollectorError
 from litsearch.config import Settings
+from litsearch.llm import LLMError, build_llm
 from litsearch.pipeline import export
 from litsearch.pipeline.retrieve import (
     MAX_PER_QUERY,
@@ -391,3 +394,78 @@ def status(
     for text, counts in summary.queries:
         found = ", ".join(f"{k} {v}" for k, v in sorted(counts.items())) or "none"
         typer.echo(f"  {text!r}: {found}")
+
+
+@app.command("check-llm")
+def check_llm(
+    list_models: Annotated[
+        bool,
+        typer.Option("--list-models", help="Always print the endpoint's model list."),
+    ] = False,
+) -> None:
+    """Check the model settings in .env with a few tiny requests."""
+    settings = Settings.from_env(env_file=Path(".env"))
+    if not settings.llm_api_key:
+        raise _fail("LLM_API_KEY is empty; set it in .env (see .env.example)")
+    failed = asyncio.run(_check_llm(settings, list_models))
+    if failed:
+        raise typer.Exit(1)
+
+
+async def _check_llm(settings: Settings, always_list: bool) -> bool:
+    """Returns True if anything failed."""
+    llm = build_llm(settings)
+    try:
+        if settings.llm_base_url:
+            parts = urlparse(settings.llm_base_url)
+            typer.echo(
+                f"Endpoint: {parts.scheme}://{parts.netloc} (relay or custom API)"
+            )
+        else:
+            typer.echo("Endpoint: the official API of each format")
+        typer.echo(f"API format setting: {settings.llm_api_format}")
+        models = {
+            "L1_MODEL": settings.l1_model,
+            "QUERY_MODEL": settings.query_model,
+        }
+        failed = False
+        for variable, model in models.items():
+            if not model:
+                typer.echo(f"  {variable:11} (empty)")
+                failed = True
+                continue
+            fmt = llm.format_for(model)
+            started = time.monotonic()
+            try:
+                reply = await llm.complete(
+                    model=model, user="Reply with the single word: OK", max_tokens=64
+                )
+            except LLMError as exc:
+                typer.echo(
+                    f"  {variable:11} {model}: {fmt} format, "
+                    f"FAILED ({exc.kind}): {exc.message}"
+                )
+                failed = True
+                continue
+            took = time.monotonic() - started
+            note = ""
+            if not reply.text.strip():
+                note = (
+                    " - empty reply (cut off: the model may spend its tokens "
+                    "on reasoning)"
+                )
+            typer.echo(
+                f"  {variable:11} {model}: {fmt} format, OK in {took:.1f} s, "
+                f"reply {reply.text.strip()[:20]!r}, served by {reply.model!r}, "
+                f"{reply.input_tokens} in / {reply.output_tokens} out tokens{note}"
+            )
+        if failed or always_list:
+            names = await llm.list_models()
+            if names:
+                typer.echo(f"\nThe endpoint lists {len(names)} models:")
+                typer.echo("  " + ", ".join(names))
+            else:
+                typer.echo("\nThe endpoint does not provide a model list.")
+        return failed
+    finally:
+        await llm.aclose()

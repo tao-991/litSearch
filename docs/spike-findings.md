@@ -193,6 +193,15 @@ Consequences: overlap between sources is expected to be small and is not the goa
 
 Three queries, quick profile (15 papers per query and source), all three sources: 9 requests, about 40 s in total. OpenAlex (title-and-abstract mode) returned 45 results for 30 credits and arXiv 42; Semantic Scholar answered the first query (15 results) and returned HTTP 429 for the other two, even after three retries each, so its status was `rate_limited` while the run completed. 102 records became 73 distinct papers. `--resume` then listed exactly the 2 failed Semantic Scholar fetches as the remaining work and nothing else. The credit estimate (30) matched the quota actually used, and the remaining-quota figure read from the free lookup matched the earlier measurements.
 
+## 6f. Model access through an API relay (Phase 1e, 2026-10-16)
+
+A relay that lists 146 models (19 Claude, 63 GPT, 16 Gemini, plus DeepSeek, Qwen, GLM, Kimi, ...) was tested with tiny requests.
+
+- **One endpoint, two request formats.** Claude models answered in the Anthropic message format (`/v1/messages`); a GPT model was refused there ("the interface does not support this model") but answered in the OpenAI chat format (`/v1/chat/completions`). Gemini and DeepSeek models also answered in the OpenAI format. The same key and base URL worked for both, which is why the client chooses the format per model name.
+- The relay's base URL ended in `/v1`; the client strips it and adds the path itself, so both spellings work.
+- All of `claude-haiku-4-5-20251001`, `claude-sonnet-5-5`, `gpt-4.1-nano`, `gpt-4o-mini`, `gemini-3.5-flash-lite`, `deepseek-v4-flash` and the configured `gpt-6.1-sol` answered "OK" in 1–3 s. **`gpt-5-nano` returned an empty reply for `max_tokens=64`: it is a reasoning model and spent all 64 tokens on hidden reasoning.** Scoring prompts must use a non-reasoning model or a generous token budget.
+- Prices of the relay's models were not measured; they have to be read from the relay's price list.
+
 ## 7. Suggested SPEC changes
 
 These were applied in SPEC v0.3:

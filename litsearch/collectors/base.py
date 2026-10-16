@@ -46,10 +46,19 @@ class SourceStatus(StrEnum):
 class CollectorError(Exception):
     """A source could not be used. ``status`` says how, for ``source_runs``."""
 
-    def __init__(self, status: SourceStatus, message: str) -> None:
+    def __init__(
+        self,
+        status: SourceStatus,
+        message: str,
+        *,
+        http_status: int | None = None,
+        detail: str | None = None,
+    ) -> None:
         super().__init__(message)
         self.status = status
         self.message = message
+        self.http_status = http_status  # the HTTP status behind the failure, if any
+        self.detail = detail  # start of the response body for non-retriable errors
 
 
 class Collector(Protocol):
@@ -117,6 +126,27 @@ class HttpCollector:
         Responses whose status is in ``ok_statuses`` are returned to the caller
         (e.g. pass ``(200, 404)`` when "not found" is an expected answer).
         """
+        return await self._request(
+            "GET",
+            url,
+            params=params,
+            secret_params=secret_params,
+            headers=headers,
+            ok_statuses=ok_statuses,
+        )
+
+    async def _request(
+        self,
+        method: str,
+        url: str,
+        *,
+        params: Mapping[str, Any] | None = None,
+        secret_params: Mapping[str, Any] | None = None,
+        headers: Mapping[str, str] | None = None,
+        json: Any = None,
+        ok_statuses: Collection[int] = (200,),
+    ) -> httpx.Response:
+        """Any HTTP method with the same politeness, retries and failure handling."""
         async with self._lock:
             if self.breaker_open:
                 raise CollectorError(
@@ -124,16 +154,18 @@ class HttpCollector:
                     f"{self.name}: skipped after {self._breaker_limit} consecutive "
                     "failures",
                 )
-            return await self._get_with_retries(
-                url, params, secret_params, headers, ok_statuses
+            return await self._send_with_retries(
+                method, url, params, secret_params, headers, json, ok_statuses
             )
 
-    async def _get_with_retries(
+    async def _send_with_retries(
         self,
+        method: str,
         url: str,
         params: Mapping[str, Any] | None,
         secret_params: Mapping[str, Any] | None,
         headers: Mapping[str, str] | None,
+        json: Any,
         ok_statuses: Collection[int],
     ) -> httpx.Response:
         full_params = {**(params or {}), **(secret_params or {})}
@@ -145,8 +177,8 @@ class HttpCollector:
             status: int | None = None
             problem: str
             try:
-                response = await self._client.get(
-                    url, params=full_params, headers=headers
+                response = await self._client.request(
+                    method, url, params=full_params, headers=headers, json=json
                 )
                 status = response.status_code
                 problem = f"HTTP {status}"
@@ -167,7 +199,12 @@ class HttpCollector:
                 kind = (
                     SourceStatus.BLOCKED if status in (401, 403) else SourceStatus.ERROR
                 )
-                raise CollectorError(kind, f"{self.name}: {problem}")
+                raise CollectorError(
+                    kind,
+                    f"{self.name}: {problem}",
+                    http_status=status,
+                    detail=response.text[:300] if response is not None else None,
+                )
 
             if attempt < self._max_retries:
                 delay = self._backoff(attempt, response)
@@ -187,7 +224,9 @@ class HttpCollector:
             if self._consecutive_failures >= self._breaker_limit:
                 self.breaker_open = True
             kind = SourceStatus.RATE_LIMITED if status == 429 else SourceStatus.ERROR
-            raise CollectorError(kind, f"{self.name}: {problem} after retries")
+            raise CollectorError(
+                kind, f"{self.name}: {problem} after retries", http_status=status
+            )
 
     def _observe(self, response: httpx.Response) -> None:
         """Hook: look at every response received (e.g. for quota headers)."""

@@ -3,7 +3,7 @@
 Read `SPEC.md` first. It is the single source of truth for requirements and design; if something conflicts with it, ask the user before changing direction.
 
 ## Tech stack (version 1)
-Python 3.12 · Typer (CLI) · httpx (async) · SQLite (`sqlite3`) · Anthropic SDK · pytest · ruff. Version 1 has no web UI, scheduler or Docker.
+Python 3.12 · Typer (CLI) · httpx (async) · SQLite (`sqlite3`) · a small httpx-based model client that speaks the Anthropic and the OpenAI chat formats (no vendor SDK) · pytest · ruff. Version 1 has no web UI, scheduler or Docker.
 
 ## Workflow
 - Work in phases per SPEC §11. Before each phase, give the user a short plan; after it, run the acceptance checklist, update the docs and commit.

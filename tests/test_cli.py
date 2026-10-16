@@ -349,3 +349,156 @@ def test_status_without_a_database_says_so(workdir: Path) -> None:
     result = runner.invoke(app, ["status", "--db", "data/none.db"])
     assert result.exit_code == 1
     assert "run a search first" in result.output
+
+
+# --------------------------------------------------------------------- check-llm
+
+import httpx  # noqa: E402
+
+from litsearch.llm import LLMClient  # noqa: E402
+
+KEY = "sk-secret-key-123"
+
+
+def llm_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    handler: Any,
+) -> list[httpx.Request]:
+    """Make the CLI talk to a scripted model endpoint; returns the requests it saw."""
+    seen: list[httpx.Request] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return handler(request)
+
+    monkeypatch.setattr(
+        cli,
+        "build_llm",
+        lambda settings: LLMClient(
+            httpx.AsyncClient(transport=httpx.MockTransport(respond)),
+            api_key=settings.llm_api_key or "",
+            base_url=settings.llm_base_url,
+            api_format=settings.llm_api_format,
+            max_retries=0,
+        ),
+    )
+    return seen
+
+
+def anthropic_ok(model: str) -> httpx.Response:
+    return httpx.Response(
+        200,
+        json={
+            "model": model,
+            "content": [{"type": "text", "text": "OK"}],
+            "usage": {"input_tokens": 13, "output_tokens": 1},
+        },
+    )
+
+
+def openai_ok(model: str, text: str = "OK") -> httpx.Response:
+    return httpx.Response(
+        200,
+        json={
+            "model": f"{model}-2026",
+            "choices": [{"message": {"content": text}, "finish_reason": "stop"}],
+            "usage": {"prompt_tokens": 13, "completion_tokens": 4},
+        },
+    )
+
+
+def llm_env(monkeypatch: pytest.MonkeyPatch, **values: str) -> None:
+    for name, value in {
+        "LLM_API_KEY": KEY,
+        "LLM_BASE_URL": "https://relay.example.com/v1",
+        "L1_MODEL": "gpt-5-nano",
+        "QUERY_MODEL": "claude-sonnet-5-5",
+        **values,
+    }.items():
+        monkeypatch.setenv(name, value)
+
+
+def test_check_llm_needs_a_key(workdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    result = runner.invoke(app, ["check-llm"])
+    assert result.exit_code == 2
+    assert "LLM_API_KEY is empty" in result.output
+
+
+def test_check_llm_reports_each_model_with_its_format(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    llm_env(monkeypatch)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json
+
+        model = json.loads(request.content)["model"]
+        return (
+            openai_ok(model)
+            if request.url.path.endswith("completions")
+            else anthropic_ok(model)
+        )
+
+    seen = llm_endpoint(monkeypatch, handler)
+    result = runner.invoke(app, ["check-llm"])
+    assert result.exit_code == 0, result.output
+    out = result.output
+    assert "Endpoint: https://relay.example.com (relay or custom API)" in out
+    assert "L1_MODEL" in out and "gpt-5-nano: openai format, OK" in out
+    assert "QUERY_MODEL" in out and "claude-sonnet-5-5: anthropic format, OK" in out
+    assert "served by 'gpt-5-nano-2026'" in out
+    assert "13 in / 4 out tokens" in out
+    assert [r.url.path for r in seen] == ["/v1/chat/completions", "/v1/messages"]
+    assert KEY not in out
+
+
+def test_check_llm_explains_a_failure_and_lists_the_models(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    llm_env(monkeypatch, L1_MODEL="gpt-9-imaginary")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json
+
+        if request.url.path == "/v1/models":
+            return httpx.Response(
+                200, json={"data": [{"id": "gpt-5-nano"}, {"id": "claude-sonnet-5-5"}]}
+            )
+        model = json.loads(request.content)["model"]
+        if model == "gpt-9-imaginary":
+            return httpx.Response(404, json={"error": {"message": "unknown model"}})
+        return anthropic_ok(model)
+
+    llm_endpoint(monkeypatch, handler)
+    result = runner.invoke(app, ["check-llm"])
+    assert result.exit_code == 1
+    assert "gpt-9-imaginary: openai format, FAILED (model)" in result.output
+    assert "unknown model" in result.output
+    assert "claude-sonnet-5-5: anthropic format, OK" in result.output
+    assert "The endpoint lists 2 models:" in result.output
+    assert "claude-sonnet-5-5, gpt-5-nano" in result.output
+
+
+def test_check_llm_warns_about_an_empty_reply(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    llm_env(monkeypatch, QUERY_MODEL="gpt-5-nano")
+    llm_endpoint(monkeypatch, lambda request: openai_ok("gpt-5-nano", text=""))
+    result = runner.invoke(app, ["check-llm"])
+    assert "empty reply" in result.output
+
+
+def test_check_llm_can_always_list_models_and_flags_empty_model_settings(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    llm_env(monkeypatch, L1_MODEL="", QUERY_MODEL="")
+    llm_endpoint(
+        monkeypatch,
+        lambda request: httpx.Response(200, json={"data": [{"id": "gpt-5-nano"}]}),
+    )
+    result = runner.invoke(app, ["check-llm", "--list-models"])
+    assert result.exit_code == 1  # nothing to test counts as a problem
+    assert "L1_MODEL" in result.output and "(empty)" in result.output
+    assert "The endpoint lists 1 models:" in result.output
