@@ -28,9 +28,17 @@ Version 1 should: given a "project description + keywords + optional seed papers
 - Vector stores / full-text chunked RAG.
 - Bypassing paywalls; scraping publisher sites; any gray-area acquisition channel.
 
-### 1.3 Scale assumptions
+### 1.3 Scale and profiles
 
-One search: dozens of queries, hundreds to one or two thousand candidate papers; the de-duplicated candidates go to model scoring; the final report holds dozens of papers. Single user, command line.
+The tool searches broadly so that recall is high, but a person only ever reads the short ranked list at the top of the report (the first 30 or so papers, plus a collapsed "possibly relevant" section). Single user, command line.
+
+Three profiles set the defaults of the size-related options (`--profile quick|standard|deep`); every value can still be overridden. **The default profile is `quick`** (decision 2026-10-16). The numbers are initial values, to be tuned during Phase 1 acceptance:
+
+| Profile | Queries | Papers per query and source | Snowball rounds | Model reads at most | Time limit |
+|---|---|---|---|---|---|
+| `quick` (default) | about 8 | 15 | 1 | 150 papers | 10 min |
+| `standard` | about 20 | 30 | 2 | 500 papers | 30 min |
+| `deep` | about 40 | 50 | 3 | 1500 papers | 60 min |
 
 ## 2. Reading funnel (mimicking how people read)
 
@@ -51,6 +59,8 @@ Principle: **the lower the level, the more expensive it is, so only papers that 
 - Optional `keywords`, `seeds` (list of DOIs / arXiv IDs / titles), date range, field filters.
 - Optional `known.txt`: papers the user already knows to be relevant (used to evaluate recall, see §11).
 
+- **Free-form input (decided 2026-10-16, implemented in Phase 1e).** The user does not have to write queries. They can describe the research interest in plain language and/or hand over one or more PDFs ("I am interested in this paper, read it and find related work"). For a PDF the model reads the title, abstract and introduction (Claude's native PDF support, see §7), writes a short "what this is about" description that is **shown to the user for editing and confirmation**, and the PDF is also added to the seed papers for snowballing. Reading only the opening of a paper to understand its topic is not the full-text reading that §1.2 excludes. Until Phase 1e, queries are given by hand with `--query "..."` (repeatable) or `--queries-file` (one query per line, `#` for comments).
+
 ### 3.2 Query generation
 
 The model generates N diverse queries from the input (synonyms, method names, different phrasings of the question, terms from adjacent fields) and stores them in the database; they are also exported to `queries.yaml`, which the user can edit and re-run. Each query records its hit count per source and its "effective hit count" (score at or above the threshold).
@@ -63,7 +73,7 @@ Phase 0 findings that shape query generation:
 
 ### 3.3 Multi-source, paginated recall
 
-For each query, each source is paged up to a cap (`--per-query`, default 50), not just the first page. Concurrency per source is 1 (requests to one source are serial); different sources may run concurrently.
+For each query, each source is paged up to a cap (`--per-query`; the default comes from the profile, see §1.3), not just the first page. OpenAlex returns up to 200 results per request at the same cost, so it is asked for the whole cap in one request. Concurrency per source is 1 (requests to one source are serial); different sources may run concurrently.
 
 ### 3.4 Merge and de-duplication
 
@@ -79,7 +89,7 @@ Rules in §5.2. Only de-duplicated papers go to scoring, so the same paper is ne
 
 ### 3.6 Citation snowballing
 
-Take the top M papers by L1 score as seeds and fetch their references and citing papers (OpenAlex is the primary source, Semantic Scholar secondary) as new candidates, then return to 3.4–3.5; repeat for R rounds (`--rounds`, default 2). User-supplied `seeds` are included among the seeds.
+Take the top M papers by L1 score as seeds and fetch their references and citing papers (OpenAlex is the primary source, Semantic Scholar secondary) as new candidates, then return to 3.4–3.5; repeat for R rounds (`--rounds`; the default comes from the profile, see §1.3). User-supplied `seeds` are included among the seeds.
 
 ### 3.7 Saturation and stopping
 
@@ -87,9 +97,9 @@ Each round counts "new papers at or above the threshold". Stop when any conditio
 
 ### 3.8 Budget and confirmation
 
-- `--dry-run`: only retrieval and de-duplication; prints the estimated number of queries, candidates, expected model calls and token magnitude, plus the **estimated OpenAlex credits** (§4) compared against the remaining quota read from the `x-ratelimit-remaining` response header. **It must not call the model.**
+- `--dry-run`: prints the plan and the estimate (requests per source, expected duration, upper bound on results, **expected OpenAlex credits** next to the remaining quota read from the response headers of a free single-work lookup) and stops. It fetches no search results, stores nothing and **does not call the model**. With `--resume` it shows only the work still to do.
 - Before a real run, show the same estimate and ask for confirmation (`--yes` skips it).
-- Limits: `--max-scored` (maximum papers to score), `--max-llm-calls`.
+- Limits: `--max-scored` (maximum papers to score), `--max-llm-calls`, `--max-minutes` (wall-clock limit: when it is reached the run stops cleanly, saves what it has and still writes the report). When more candidates exist than `--max-scored` allows, the best-ranked ones (by position in the source result lists, interleaved across queries and sources) are scored first.
 - Every step is written to the database; `--resume RUN_ID` continues an interrupted run.
 
 ## 4. Data sources and collectors
@@ -201,8 +211,13 @@ Hard rule: **every link, DOI, author and year must come from fields returned by 
 
 ```
 litsearch init                         # generate a project.md template and .env.example
-litsearch run --project project.md [--rounds 2] [--per-query 50] [--sources openalex,s2,arxiv] [--gs]
-              [--saturation 3] [--max-scored N] [--max-llm-calls N] [--dry-run] [--yes] [--resume RUN_ID]
+litsearch run --query "..." [--query "..."] [--queries-file FILE]     # Phase 1d: queries given by hand
+litsearch run --project project.md [--profile quick|standard|deep] [--rounds N] [--per-query N]
+              [--sources openalex,s2,arxiv] [--openalex-mode title-abstract|fulltext|both] [--gs]
+              [--saturation 3] [--max-scored N] [--max-llm-calls N] [--max-minutes N] [--top N]
+              [--since YYYY-MM-DD] [--name NAME] [--db FILE] [--out-dir DIR]
+              [--dry-run] [--yes] [--resume RUN_ID]
+litsearch status [RUN_ID]              # what a run did: sources, queries, papers found (default: latest run)
 litsearch report RUN_ID                # regenerate the report from cache, no model calls
 litsearch queries RUN_ID               # export / view queries and their effective hit counts
 ```

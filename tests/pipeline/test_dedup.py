@@ -559,3 +559,25 @@ def test_a_record_with_a_wrong_title_but_other_ids_stays_apart() -> None:
         authors=("Niruthiha Selvanayagam", "Taher A. Ghaleb"),
     )
     assert len(deduplicate([broken, real]).papers) == 2
+
+
+def test_join_callback_reports_kept_and_dropped_groups() -> None:
+    joins: list[tuple[int, int]] = []
+    dedup = Deduplicator(on_join=lambda kept, dropped: joins.append((kept, dropped)))
+    g1 = dedup.add(meta("Alpha Beta Gamma Delta", doi="10.1000/x", authors=("A One",)))
+    g2 = dedup.add(
+        meta("Other Words Entirely", arxiv_id="2601.00001", authors=("B Two",))
+    )
+    assert joins == []
+    dedup.add(meta("Whatever", doi="10.1000/x", arxiv_id="2601.00001", authors=()))
+    assert joins == [(g1, g2)]
+
+
+def test_group_records_come_back_in_arrival_order_and_merged_works() -> None:
+    dedup = Deduplicator()
+    first = meta("Agents That Review Code", doi="10.1000/x")
+    second = meta("Agents That Review Code", doi="10.1000/x", source="s2", venue="V")
+    gid = dedup.add(first)
+    assert dedup.add(second) == gid
+    assert dedup.group_records(gid) == [first, second]
+    assert dedup.merged(gid).venue == "V"

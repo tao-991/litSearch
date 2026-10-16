@@ -132,7 +132,7 @@ def test_estimate_credits() -> None:
 
 def test_search_sends_expected_parameters_and_credentials() -> None:
     server = Server([json_response(fixture_json("openalex_search.json"))])
-    c = make(server, email="me@example.org", api_key="KEY123")
+    c = make(server, email="me@example.org", api_key="KEY123", mode="fulltext")
     page = run(c.search("coding agents", limit=4, offset=0, since=date(2024, 1, 1)))
     sent = params(server.requests[0])
     assert server.requests[0].url.path == "/works"
@@ -149,7 +149,7 @@ def test_search_sends_expected_parameters_and_credentials() -> None:
 
 def test_search_without_credentials_sends_none() -> None:
     server = Server([json_response(fixture_json("openalex_search.json"))])
-    c = make(server)
+    c = make(server, mode="fulltext")
     run(c.search("coding agents", limit=4))
     sent = params(server.requests[0])
     assert "mailto" not in sent
@@ -320,3 +320,55 @@ def test_citations_resolve_the_openalex_id_from_a_doi() -> None:
 def test_citations_of_an_unknown_work_are_empty() -> None:
     server = Server([json_response({}, 404)])
     assert run(make(server).citations(paper(doi="10.1000/abc"), limit=5)) == []
+
+
+# ----------------------------------------------------------------- search modes
+
+
+def test_default_mode_searches_titles_and_abstracts_with_a_filter() -> None:
+    server = Server([json_response(fixture_json("openalex_search.json"))])
+    run(make(server).search("coding agents", limit=4))
+    sent = params(server.requests[0])
+    assert sent["filter"] == "title_and_abstract.search:coding agents"
+    assert "search" not in sent
+
+
+def test_title_abstract_mode_combines_with_the_date_filter() -> None:
+    server = Server([json_response(fixture_json("openalex_search.json"))])
+    run(make(server).search("coding agents", limit=4, since=date(2024, 1, 1)))
+    assert params(server.requests[0])["filter"] == (
+        "title_and_abstract.search:coding agents,from_publication_date:2024-01-01"
+    )
+
+
+def test_commas_in_the_query_cannot_break_the_filter() -> None:
+    server = Server([json_response(fixture_json("openalex_search.json"))])
+    run(make(server).search("agents, review, trust", limit=4))
+    assert params(server.requests[0])["filter"] == (
+        "title_and_abstract.search:agents  review  trust"
+    )
+
+
+def test_the_mode_can_be_chosen_per_call() -> None:
+    body = json_response(fixture_json("openalex_search.json"))
+    server = Server([body, json_response(fixture_json("openalex_search.json"))])
+    c = make(server)  # default: title-abstract
+    run(c.search("coding agents", limit=4, mode="fulltext"))
+    run(c.search("coding agents", limit=4))
+    assert "search" in params(server.requests[0])
+    assert "filter" not in params(server.requests[0])
+    assert "filter" in params(server.requests[1])
+
+
+def test_unknown_mode_is_rejected() -> None:
+    with pytest.raises(ValueError):
+        make(Server(), mode="semantic")
+    with pytest.raises(ValueError):
+        run(make(Server()).search("q", limit=4, mode="semantic"))
+
+
+def test_fetch_quota_reads_the_headers_of_a_free_lookup() -> None:
+    headers = {"x-ratelimit-limit": "1000", "x-ratelimit-remaining": "735"}
+    server = Server([json_response({"id": "https://openalex.org/W1"}, **headers)])
+    assert run(make(server).fetch_quota()) == (735, 1000)
+    assert server.requests[0].url.path.startswith("/works/")

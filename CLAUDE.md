@@ -7,6 +7,7 @@ Python 3.12 · Typer (CLI) · httpx (async) · SQLite (`sqlite3`) · Anthropic S
 
 ## Workflow
 - Work in phases per SPEC §11. Before each phase, give the user a short plan; after it, run the acceptance checklist, update the docs and commit.
+- **Before every commit, update `README.md`** (status, Phase 1 progress checklist, commands, what the user can do now) whenever anything user-visible changed, and re-read it once for accuracy.
 - Endpoints, fields, limits and model IDs of external APIs come from official docs or real requests; record conclusions in `docs/spike-findings.md`.
 
 ## Conventions

@@ -18,7 +18,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 RUN_TERMINAL_STATUSES = frozenset({"completed", "failed", "interrupted"})
 
@@ -131,7 +131,39 @@ CREATE TABLE source_runs (
     UNIQUE (run_id, source)
 );
 
-PRAGMA user_version = {SCHEMA_VERSION};
+PRAGMA user_version = 1;
+COMMIT;
+"""
+
+
+# v2: named runs, per-paper publication status, the stored form of every source record
+# (so a later run can rebuild the de-duplication state) and the fetch log that makes
+# runs resumable. "done" or the failure kind of one (query, source, variant) fetch.
+_MIGRATION_V2 = """
+BEGIN;
+
+ALTER TABLE runs ADD COLUMN name TEXT;
+CREATE UNIQUE INDEX runs_name_uq ON runs(name) WHERE name IS NOT NULL;
+
+ALTER TABLE papers ADD COLUMN publication_status TEXT;
+ALTER TABLE papers ADD COLUMN work_type TEXT;
+
+ALTER TABLE paper_records ADD COLUMN meta TEXT;
+
+CREATE TABLE fetches (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id    INTEGER NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+    query_id  INTEGER NOT NULL REFERENCES queries(id) ON DELETE CASCADE,
+    source    TEXT NOT NULL,
+    variant   TEXT NOT NULL DEFAULT '',
+    status    TEXT NOT NULL
+              CHECK (status IN ('done', 'blocked', 'rate_limited', 'error', 'skipped')),
+    n_results INTEGER NOT NULL DEFAULT 0,
+    error     TEXT,
+    UNIQUE (run_id, query_id, source, variant)
+);
+
+PRAGMA user_version = 2;
 COMMIT;
 """
 
@@ -171,6 +203,9 @@ def init_schema(conn: sqlite3.Connection) -> None:
         )
     if version < 1:
         conn.executescript(_SCHEMA_V1)
+        version = 1
+    if version < 2:
+        conn.executescript(_MIGRATION_V2)
 
 
 def dumps_json(value: Any) -> str:

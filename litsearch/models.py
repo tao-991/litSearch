@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 
@@ -73,3 +73,18 @@ class MergedPaper:
     work_type: str | None
     status: str
     records: tuple[PaperMeta, ...]
+
+
+def paper_to_dict(paper: PaperMeta) -> dict[str, Any]:
+    """JSON-friendly form of a record without its bulky ``raw`` payload."""
+    data = asdict(paper)
+    data.pop("raw")
+    data["authors"] = list(paper.authors)
+    return data
+
+
+def paper_from_dict(data: dict[str, Any]) -> PaperMeta:
+    """Inverse of ``paper_to_dict`` (``raw`` is not restored)."""
+    fields = dict(data)
+    fields["authors"] = tuple(fields.get("authors") or ())
+    return PaperMeta(**fields)

@@ -17,6 +17,7 @@ EXPECTED_TABLES = {
     "scores",
     "edges",
     "source_runs",
+    "fetches",
 }
 
 
@@ -246,3 +247,59 @@ def test_deleting_a_run_removes_its_children(conn: sqlite3.Connection) -> None:
         assert conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
     # papers are shared across runs and survive
     assert conn.execute("SELECT COUNT(*) FROM papers").fetchone()[0] == 1
+
+
+def test_upgrade_from_schema_v1_keeps_existing_data(tmp_path: Path) -> None:
+    path = tmp_path / "old.db"
+    old = db.connect(path)
+    old.executescript(db._SCHEMA_V1)
+    old.execute("INSERT INTO runs (project_hash) VALUES ('abc')")
+    old.execute("INSERT INTO papers (title, doi) VALUES ('Old paper', '10.1/x')")
+    old.commit()
+    assert db.schema_version(old) == 1
+
+    db.init_schema(old)
+    assert db.schema_version(old) == db.SCHEMA_VERSION
+    assert old.execute("SELECT project_hash, name FROM runs").fetchone()[:] == (
+        "abc",
+        None,
+    )
+    row = old.execute(
+        "SELECT title, publication_status, work_type FROM papers"
+    ).fetchone()
+    assert tuple(row) == ("Old paper", None, None)
+    assert "fetches" in _tables(old)
+    old.close()
+
+
+def test_run_names_are_unique_when_set(conn: sqlite3.Connection) -> None:
+    with conn:
+        conn.execute("INSERT INTO runs (project_hash, name) VALUES ('a', 'first')")
+        conn.execute("INSERT INTO runs (project_hash) VALUES ('b')")
+        conn.execute("INSERT INTO runs (project_hash) VALUES ('c')")  # no name: fine
+    with pytest.raises(sqlite3.IntegrityError), conn:
+        conn.execute("INSERT INTO runs (project_hash, name) VALUES ('d', 'first')")
+
+
+def test_fetches_are_unique_per_query_source_and_variant(
+    conn: sqlite3.Connection,
+) -> None:
+    run_id = db.create_run(conn, "h")
+    with conn:
+        conn.execute(
+            "INSERT INTO queries (run_id, text, origin) VALUES (?, 'q', 'user')",
+            (run_id,),
+        )
+    query_id = conn.execute("SELECT id FROM queries").fetchone()[0]
+    sql = (
+        "INSERT INTO fetches (run_id, query_id, source, variant, status) "
+        "VALUES (?, ?, ?, ?, ?)"
+    )
+    with conn:
+        conn.execute(sql, (run_id, query_id, "openalex", "title-abstract", "done"))
+        conn.execute(sql, (run_id, query_id, "openalex", "fulltext", "done"))
+        conn.execute(sql, (run_id, query_id, "arxiv", "", "rate_limited"))
+    with pytest.raises(sqlite3.IntegrityError), conn:
+        conn.execute(sql, (run_id, query_id, "arxiv", "", "done"))
+    with pytest.raises(sqlite3.IntegrityError), conn:
+        conn.execute(sql, (run_id, query_id, "s2", "", "exploded"))

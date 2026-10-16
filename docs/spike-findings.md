@@ -189,6 +189,10 @@ Query `human-in-the-loop software development agents`, 20 results per source: of
 
 Consequences: overlap between sources is expected to be small and is not the goal; the union is. Query generation, paging and snowballing (SPEC §3) matter more than de-duplication volume. For OpenAlex, a title-and-abstract search mode is worth offering next to the full-text mode: it is far less noisy and its complete result set can be fetched cheaply.
 
+## 6e. First end-to-end run of `litsearch run` (Phase 1d, 2026-10-16)
+
+Three queries, quick profile (15 papers per query and source), all three sources: 9 requests, about 40 s in total. OpenAlex (title-and-abstract mode) returned 45 results for 30 credits and arXiv 42; Semantic Scholar answered the first query (15 results) and returned HTTP 429 for the other two, even after three retries each, so its status was `rate_limited` while the run completed. 102 records became 73 distinct papers. `--resume` then listed exactly the 2 failed Semantic Scholar fetches as the remaining work and nothing else. The credit estimate (30) matched the quota actually used, and the remaining-quota figure read from the free lookup matched the earlier measurements.
+
 ## 7. Suggested SPEC changes
 
 These were applied in SPEC v0.3:

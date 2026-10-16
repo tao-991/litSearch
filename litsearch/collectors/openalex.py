@@ -26,6 +26,11 @@ from litsearch.normalize import (
 )
 
 BASE_URL = "https://api.openalex.org"
+# "title-abstract": match titles and abstracts only (default; far less noisy).
+# "fulltext": the API's plain relevance search over the full text of every work.
+SEARCH_MODES = ("title-abstract", "fulltext")
+DEFAULT_MODE = "title-abstract"
+_QUOTA_PROBE_PATH = "/works/W2626778328"  # a lookup of one work costs 0 credits
 SEARCH_CREDITS = 10  # request with a search term
 FILTER_CREDITS = 1  # request with only filters
 MAX_PAGEABLE = 10_000  # `page` paging stops here without an API key
@@ -169,9 +174,12 @@ class OpenAlexCollector(HttpCollector):
         email: str | None = None,
         api_key: str | None = None,
         min_interval: float = 0.2,
+        mode: str = DEFAULT_MODE,
         **kwargs: Any,
     ) -> None:
         super().__init__(client, min_interval=min_interval, **kwargs)
+        _check_mode(mode)
+        self._mode = mode
         self._email = email
         self._api_key = api_key
         self.credits_limit: int | None = None
@@ -217,8 +225,14 @@ class OpenAlexCollector(HttpCollector):
         limit: int,
         offset: int = 0,
         since: date | None = None,
+        mode: str | None = None,
     ) -> Page:
-        """One page of results. ``offset`` must be a multiple of ``limit``."""
+        """One page of results. ``offset`` must be a multiple of ``limit``.
+
+        ``mode`` overrides the collector's default search mode for this call.
+        """
+        mode = mode or self._mode
+        _check_mode(mode)
         if not query.strip():
             raise ValueError("query must not be empty")
         if not 1 <= limit <= MAX_PER_PAGE:
@@ -230,13 +244,20 @@ class OpenAlexCollector(HttpCollector):
                 f"OpenAlex page paging is limited to the first {MAX_PAGEABLE} results"
             )
         params: dict[str, Any] = {
-            "search": query,
             "per-page": limit,
             "page": offset // limit + 1,
             "select": SELECT,
         }
+        filters: list[str] = []
+        if mode == "fulltext":
+            params["search"] = query
+        else:
+            # a comma separates filters, so it cannot appear inside the value
+            filters.append(f"title_and_abstract.search:{query.replace(',', ' ')}")
         if since is not None:
-            params["filter"] = f"from_publication_date:{since.isoformat()}"
+            filters.append(f"from_publication_date:{since.isoformat()}")
+        if filters:
+            params["filter"] = ",".join(filters)
         _, body = await self._json("/works", params)
         results = body.get("results") or []
         total = (body.get("meta") or {}).get("count")
@@ -248,6 +269,11 @@ class OpenAlexCollector(HttpCollector):
             total=total,
             next_offset=reached if more else None,
         )
+
+    async def fetch_quota(self) -> tuple[int | None, int | None]:
+        """(credits remaining, daily limit) read from a lookup that costs nothing."""
+        await self._json(_QUOTA_PROBE_PATH, {"select": "id"})
+        return self.credits_remaining, self.credits_limit
 
     def _work_path(self, paper: PaperMeta) -> str | None:
         if paper.openalex_id:
@@ -320,6 +346,13 @@ class OpenAlexCollector(HttpCollector):
                 break
             page_number += 1
         return found[:limit]
+
+
+def _check_mode(mode: str) -> None:
+    if mode not in SEARCH_MODES:
+        raise ValueError(
+            f"unknown OpenAlex search mode {mode!r}; use one of {SEARCH_MODES}"
+        )
 
 
 def _to_int(value: str | None) -> int | None:

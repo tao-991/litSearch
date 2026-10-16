@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 
@@ -311,7 +311,9 @@ class Deduplicator:
     order of first appearance.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, on_join: Callable[[int, int], None] | None = None) -> None:
+        # on_join(kept_gid, dropped_gid) is called whenever two groups become one
+        self._on_join = on_join
         self._groups: dict[int, _Group] = {}
         self._by_key: dict[str, int] = {}
         self._by_surname: defaultdict[str, set[int]] = defaultdict(set)
@@ -392,6 +394,8 @@ class Deduplicator:
             for surname in other.surnames:
                 self._by_surname[surname].discard(gid)
                 self._by_surname[surname].add(root.gid)
+            if self._on_join is not None:
+                self._on_join(root.gid, gid)
         return root
 
     def _attach(
@@ -413,6 +417,14 @@ class Deduplicator:
         for surname in _surnames(paper):
             group.surnames.add(surname)
             self._by_surname[surname].add(group.gid)
+
+    def group_records(self, gid: int) -> list[PaperMeta]:
+        """The source records of a group, in the order they arrived."""
+        group = self._groups[gid]
+        return [r for _, r in sorted(group.records, key=lambda sr: sr[0])]
+
+    def merged(self, gid: int) -> MergedPaper:
+        return merge_records(self.group_records(gid))
 
     def result(self) -> DedupResult:
         group_of = {
