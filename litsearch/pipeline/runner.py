@@ -32,6 +32,8 @@ class RunParams:
     profile: str
     since: str | None = None  # ISO date
     max_minutes: float | None = None
+    project: str | None = None  # the project brief the queries were written from
+    query_origin: str = "user"  # "llm" when the model wrote the queries
 
     def to_json(self) -> dict[str, Any]:
         return asdict(self)
@@ -48,14 +50,15 @@ def create_run(
     conn: sqlite3.Connection, params: RunParams, name: str | None = None
 ) -> int:
     """Store a new run with its queries; the default name is ``run-0001`` style."""
-    project_hash = hashlib.sha256("\n".join(params.queries).encode()).hexdigest()
+    basis = params.project.strip() if params.project else "\n".join(params.queries)
+    project_hash = hashlib.sha256(basis.encode()).hexdigest()
     run_id = db.create_run(conn, project_hash, params.to_json())
     with conn:
         conn.execute(
             "UPDATE runs SET name = ? WHERE id = ?",
             (name or f"run-{run_id:04d}", run_id),
         )
-    add_queries(conn, run_id, params.queries, origin="user")
+    add_queries(conn, run_id, params.queries, origin=params.query_origin)
     return run_id
 
 

@@ -502,3 +502,283 @@ def test_check_llm_can_always_list_models_and_flags_empty_model_settings(
     assert result.exit_code == 1  # nothing to test counts as a problem
     assert "L1_MODEL" in result.output and "(empty)" in result.output
     assert "The endpoint lists 1 models:" in result.output
+
+
+# ------------------------------------------------------- brief, queries, run --project
+
+import json  # noqa: E402
+
+from litsearch.llm import LLMError  # noqa: E402
+from tests.llm.fakes import FakeLLM  # noqa: E402
+
+BRIEF_TEXT = "# Coding agents\n## Research question\nHow to decide faster?"
+
+
+def queries_reply(*queries: str) -> str:
+    return json.dumps(
+        {
+            "queries": [
+                {"query": q, "angle": f"angle {i}"} for i, q in enumerate(queries)
+            ]
+        }
+    )
+
+
+def use_llm(monkeypatch: pytest.MonkeyPatch, llm: FakeLLM) -> FakeLLM:
+    monkeypatch.setattr(cli, "build_llm", lambda settings: llm)
+    return llm
+
+
+def llm_ready(monkeypatch: pytest.MonkeyPatch, **extra: str) -> None:
+    for name, value in {
+        "LLM_API_KEY": KEY,
+        "QUERY_MODEL": "model-q",
+        **extra,
+    }.items():
+        monkeypatch.setenv(name, value)
+
+
+def test_brief_needs_model_settings_and_a_description(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    assert (
+        "LLM_API_KEY is empty" in runner.invoke(app, ["brief", "--about", "x"]).output
+    )
+    monkeypatch.setenv("LLM_API_KEY", KEY)
+    assert (
+        "QUERY_MODEL is empty" in runner.invoke(app, ["brief", "--about", "x"]).output
+    )
+    llm_ready(monkeypatch)
+    result = runner.invoke(app, ["brief"])
+    assert result.exit_code == 2
+    assert "describe your research" in result.output
+
+
+def test_brief_writes_the_project_file_and_explains_the_next_step(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    llm_ready(monkeypatch)
+    llm = use_llm(monkeypatch, FakeLLM([BRIEF_TEXT]))
+    result = runner.invoke(
+        app, ["brief", "--about", "How can coding agents help engineers decide faster?"]
+    )
+    assert result.exit_code == 0, result.output
+    assert (workdir / "project.md").read_text(encoding="utf-8").strip() == BRIEF_TEXT
+    assert "Brief written to project.md" in result.output
+    assert "litsearch run --project project.md" in result.output
+    assert llm.calls[0]["model"] == "model-q"
+    assert "Chinese" in llm.calls[0]["system"]  # the default summary language
+    assert "decide faster" in llm.calls[0]["user"]
+
+
+def test_brief_uses_the_configured_language_and_a_description_file(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    llm_ready(monkeypatch, SUMMARY_LANGUAGE="English")
+    (workdir / "idea.txt").write_text("my long idea in a file", encoding="utf-8")
+    llm = use_llm(monkeypatch, FakeLLM([BRIEF_TEXT]))
+    result = runner.invoke(
+        app,
+        ["brief", "--about", "short note", "--about-file", "idea.txt", "--out", "b.md"],
+    )
+    assert result.exit_code == 0, result.output
+    assert "in English as Markdown" in llm.calls[0]["system"]
+    assert (
+        "short note" in llm.calls[0]["user"] and "my long idea" in llm.calls[0]["user"]
+    )
+    assert (workdir / "b.md").exists()
+
+
+def test_brief_never_overwrites_your_edits_without_force(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    llm_ready(monkeypatch)
+    (workdir / "project.md").write_text("my edits", encoding="utf-8")
+    llm = use_llm(monkeypatch, FakeLLM([BRIEF_TEXT]))
+    refused = runner.invoke(app, ["brief", "--about", "x"])
+    assert refused.exit_code == 2
+    assert "already exists" in refused.output
+    assert llm.calls == []  # no money spent before the check
+    assert (workdir / "project.md").read_text(encoding="utf-8") == "my edits"
+    assert runner.invoke(app, ["brief", "--about", "x", "--force"]).exit_code == 0
+    assert (workdir / "project.md").read_text(encoding="utf-8").strip() == BRIEF_TEXT
+
+
+def test_brief_reports_model_failures(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    llm_ready(monkeypatch)
+    use_llm(monkeypatch, FakeLLM([LLMError("auth", "the endpoint refused the key")]))
+    result = runner.invoke(app, ["brief", "--about", "x"])
+    assert result.exit_code == 1
+    assert "model request failed (auth)" in result.output
+    assert not (workdir / "project.md").exists()
+
+
+def test_queries_lists_them_with_their_angle_and_writes_the_file(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    llm_ready(monkeypatch)
+    (workdir / "project.md").write_text(BRIEF_TEXT, encoding="utf-8")
+    llm = use_llm(
+        monkeypatch, FakeLLM([queries_reply("code review agents", "trust automation")])
+    )
+    result = runner.invoke(app, ["queries", "--project", "project.md"])
+    assert result.exit_code == 0, result.output
+    assert "2 queries (model fake-model; 100 in / 50 out tokens):" in result.output
+    assert "1. code review agents  - angle 0" in result.output
+    text = (workdir / "queries.txt").read_text(encoding="utf-8")
+    assert "code review agents" in text.splitlines()
+    assert "15" not in llm.calls[0]["system"]  # the ceiling is not shown to the model
+    assert "litsearch run --queries-file queries.txt" in result.output
+
+
+def test_queries_ceiling_and_profile_options(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    llm_ready(monkeypatch)
+    (workdir / "project.md").write_text(BRIEF_TEXT, encoding="utf-8")
+    twenty = queries_reply(*[f"query number {i}" for i in range(20)])
+    use_llm(monkeypatch, FakeLLM([twenty]))
+    quick = runner.invoke(app, ["queries", "--project", "project.md", "--out", "a.txt"])
+    assert "15 queries" in quick.output  # the quick profile's ceiling
+    assert "5 more queries than the ceiling" in quick.output
+    limited = runner.invoke(
+        app,
+        ["queries", "--project", "project.md", "--max-queries", "4", "--out", "b.txt"],
+    )
+    assert "4 queries" in limited.output and "16 more queries" in limited.output
+    deep = runner.invoke(
+        app,
+        ["queries", "--project", "project.md", "--profile", "deep", "--out", "c.txt"],
+    )
+    assert deep.exit_code == 0, deep.output
+    assert "20 queries" in deep.output and "ceiling" not in deep.output
+    bad = runner.invoke(
+        app, ["queries", "--project", "project.md", "--max-queries", "0"]
+    )
+    assert bad.exit_code == 2
+
+
+def test_queries_refuses_to_overwrite_and_checks_its_input(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    llm_ready(monkeypatch)
+    llm = use_llm(monkeypatch, FakeLLM([queries_reply("code review agents")]))
+    missing = runner.invoke(app, ["queries", "--project", "nope.md"])
+    assert missing.exit_code == 2 and "cannot read project brief" in missing.output
+    (workdir / "project.md").write_text("  \n", encoding="utf-8")
+    assert (
+        "is empty" in runner.invoke(app, ["queries", "--project", "project.md"]).output
+    )
+    (workdir / "project.md").write_text(BRIEF_TEXT, encoding="utf-8")
+    (workdir / "queries.txt").write_text("my edits", encoding="utf-8")
+    refused = runner.invoke(app, ["queries", "--project", "project.md"])
+    assert refused.exit_code == 2 and "already exists" in refused.output
+    assert llm.calls == []
+
+
+def test_the_queries_file_can_be_edited_and_used_for_a_run(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    llm_ready(monkeypatch)
+    (workdir / "project.md").write_text(BRIEF_TEXT, encoding="utf-8")
+    use_llm(monkeypatch, FakeLLM([queries_reply("agents review", "trust")]))
+    use_fakes(monkeypatch, **two_sources())
+    runner.invoke(app, ["queries", "--project", "project.md"])
+    result = runner.invoke(app, [*BASE, "--queries-file", "queries.txt", "--yes"])
+    assert result.exit_code == 0, result.output
+    assert "2 queries, sources openalex, arxiv" in result.output
+
+
+def test_run_with_a_project_asks_the_model_once_and_remembers_the_answer(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    llm_ready(monkeypatch)
+    (workdir / "project.md").write_text(BRIEF_TEXT, encoding="utf-8")
+    llm = use_llm(monkeypatch, FakeLLM([queries_reply("agents review", "trust")]))
+    use_fakes(monkeypatch, **two_sources())
+    first = runner.invoke(
+        app, [*BASE, "--project", "project.md", "--yes", "--name", "p1"]
+    )
+    assert first.exit_code == 0, first.output
+    assert "2 queries (model fake-model; 100 in / 50 out tokens):" in first.output
+    assert "Run p1 completed." in first.output
+    conn = sqlite3.connect(workdir / "data" / "lit.db")
+    origins = {r[0] for r in conn.execute("SELECT origin FROM queries")}
+    assert origins == {"llm"}
+    stored = json.loads(conn.execute("SELECT params FROM runs").fetchone()[0])
+    assert stored["project"].strip() == BRIEF_TEXT
+    assert stored["query_origin"] == "llm"
+
+    second = runner.invoke(
+        app, [*BASE, "--project", "project.md", "--yes", "--name", "p2"]
+    )
+    assert second.exit_code == 0, second.output
+    assert "from the cache, no model call" in second.output
+    assert len(llm.calls) == 1  # the second run did not ask again
+
+
+def test_a_dry_run_with_a_project_makes_no_model_call(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("QUERY_MODEL", "model-q")  # note: no LLM_API_KEY at all
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    (workdir / "project.md").write_text(BRIEF_TEXT, encoding="utf-8")
+    use_fakes(monkeypatch, **two_sources())
+    uncached = runner.invoke(app, [*BASE, "--project", "project.md", "--dry-run"])
+    assert uncached.exit_code == 1
+    assert "a dry run makes no model call" in uncached.output
+    assert "litsearch queries --project FILE" in uncached.output
+    assert not (workdir / "data").exists()  # and the database was not created
+
+    llm_ready(monkeypatch)  # now generate and cache the queries for real...
+    use_llm(monkeypatch, FakeLLM([queries_reply("agents review", "trust")]))
+    assert (
+        runner.invoke(app, [*BASE, "--project", "project.md", "--yes"]).exit_code == 0
+    )
+    monkeypatch.delenv("LLM_API_KEY", raising=False)  # ...and dry-run without a key
+    cached = runner.invoke(app, [*BASE, "--project", "project.md", "--dry-run"])
+    assert cached.exit_code == 0, cached.output
+    assert "from the cache, no model call" in cached.output
+    assert "Dry run: nothing was fetched" in cached.output
+
+
+def test_project_conflicts_and_missing_files_are_explained(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    llm_ready(monkeypatch)
+    use_fakes(monkeypatch, **two_sources())
+    (workdir / "project.md").write_text(BRIEF_TEXT, encoding="utf-8")
+    both = runner.invoke(
+        app, [*BASE, "--project", "project.md", "-q", "x", "--dry-run"]
+    )
+    assert both.exit_code == 2 and "either --project or --query" in both.output
+    missing = runner.invoke(app, [*BASE, "--project", "nope.md", "--dry-run"])
+    assert missing.exit_code == 2 and "cannot read project brief" in missing.output
+    resume = runner.invoke(
+        app, ["run", "--resume", "1", "--project", "project.md", "--db", "data/lit.db"]
+    )
+    assert resume.exit_code == 2
+    assert "do not give new queries" in resume.output
+
+
+def test_queries_label_the_angles_in_the_configured_language(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (workdir / "project.md").write_text(BRIEF_TEXT, encoding="utf-8")
+    llm_ready(monkeypatch)
+    llm = use_llm(monkeypatch, FakeLLM([queries_reply("code review agents")]))
+    runner.invoke(app, ["queries", "--project", "project.md", "--out", "a.txt"])
+    assert (
+        "angle" in llm.calls[0]["system"]
+        and "in Chinese saying" in llm.calls[0]["system"]
+    )
+
+    llm_ready(monkeypatch, SUMMARY_LANGUAGE="Japanese")
+    llm2 = use_llm(monkeypatch, FakeLLM([queries_reply("code review agents")]))
+    runner.invoke(app, ["queries", "--project", "project.md", "--out", "b.txt"])
+    assert "in Japanese saying" in llm2.calls[0]["system"]

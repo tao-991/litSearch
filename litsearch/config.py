@@ -13,6 +13,7 @@ from pathlib import Path
 
 DEFAULT_DATA_DIR = Path("./data")
 API_FORMATS = ("auto", "anthropic", "openai")
+DEFAULT_SUMMARY_LANGUAGE = "Chinese"
 DEFAULT_GS_MIN_DELAY = 10.0
 DEFAULT_GS_MAX_DELAY = 30.0
 
@@ -74,6 +75,7 @@ class Settings:
     llm_api_key: str | None = field(default=None, repr=False)
     llm_base_url: str | None = field(default=None, repr=False)
     llm_api_format: str = "auto"
+    summary_language: str = DEFAULT_SUMMARY_LANGUAGE
     l1_model: str | None = None
     query_model: str | None = None
     gs_min_delay: float = DEFAULT_GS_MIN_DELAY
@@ -124,6 +126,8 @@ class Settings:
             or _opt(merged, "ANTHROPIC_API_KEY"),
             llm_base_url=base_url,
             llm_api_format=api_format,
+            summary_language=_opt(merged, "SUMMARY_LANGUAGE")
+            or DEFAULT_SUMMARY_LANGUAGE,
             l1_model=_opt(merged, "L1_MODEL"),
             query_model=_opt(merged, "QUERY_MODEL"),
             gs_min_delay=gs_min,

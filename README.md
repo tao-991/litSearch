@@ -12,7 +12,7 @@ Phase 1 progress:
 - [x] **1b** Collectors for OpenAlex, Semantic Scholar and arXiv (offline-tested; smoke-tested against the real services)
 - [x] **1c** De-duplication (merges the same paper found by different sources or queries)
 - [x] **1d** Retrieval pipeline: `litsearch run` / `litsearch status`, `--dry-run` estimate, confirmation, `--resume`, time limit, profiles
-- [ ] **1e** Model access, query generation from free text or PDFs, L1 scoring. *Done so far:* a model client that speaks both the Anthropic and the OpenAI chat format (so Claude, GPT, Gemini, DeepSeek, ... all work through one key and base URL) and `litsearch check-llm` to test your settings. *Still to do:* query generation, PDF input, scoring.
+- [ ] **1e** Model access, query generation from free text or PDFs, L1 scoring. *Done:* a model client that speaks both the Anthropic and the OpenAI chat format (Claude, GPT, Gemini, DeepSeek, ... through one key and base URL), `litsearch check-llm`, `litsearch brief` (your words become an editable project brief) and `litsearch queries` / `litsearch run --project` (the model writes the queries and decides how many). *Still to do:* PDF input, scoring papers.
 - [ ] **1f** Snowballing, report, full command line, optional Google Scholar round
 
 ## Quick start
@@ -21,23 +21,27 @@ Requires [uv](https://docs.astral.sh/uv/).
 
 ```bash
 make sync                      # install dependencies
-cp .env.example .env           # optional: add CONTACT_EMAIL and API keys (see Configuration)
+cp .env.example .env           # then fill in at least the model settings (see Configuration)
+uv run litsearch check-llm     # test the model settings
 
-# 1. see what a search would cost, without fetching anything
-uv run litsearch run -q "human-in-the-loop software development agents" \
-                     -q "AI-generated code review acceptance" --dry-run
+# 1. describe your research in your own words; the model writes a project brief
+uv run litsearch brief --about "I want to study how a coding agent can help engineers decide faster whether to accept the code changes it just generated"
+#    -> project.md: read it and edit it if the model misunderstood something
 
-# 2. run it (asks for confirmation; add --yes to skip)
-uv run litsearch run -q "human-in-the-loop software development agents" \
-                     -q "AI-generated code review acceptance"
+# 2. the model writes the search queries (it decides how many); they are saved in queries.txt
+uv run litsearch queries --project project.md
+#    -> edit queries.txt if you like
 
-# 3. look at the result
+# 3. see what the search would cost, then run it
+uv run litsearch run --queries-file queries.txt --dry-run
+uv run litsearch run --queries-file queries.txt
+
+# 4. look at the result
 uv run litsearch status        # sources, queries, papers found
 open out/run-0001/candidates.md      # or candidates.csv (all papers, with abstracts)
-
-# optional: check your model settings (LLM_API_KEY, LLM_BASE_URL, L1_MODEL, QUERY_MODEL in .env)
-uv run litsearch check-llm
 ```
+
+`litsearch run --project project.md` does step 2 and 3 in one go (the queries are cached, so a repeat costs nothing). You can also skip the model and give queries yourself: `litsearch run -q "first query" -q "second query"`.
 
 Useful options (see `litsearch run --help`): `--queries-file FILE` (one query per line, `#` for comments), `--profile quick|standard|deep` (how much to search; `quick` is the default), `--per-query N`, `--sources openalex,s2,arxiv`, `--openalex-mode title-abstract|fulltext|both`, `--since 2024-01-01`, `--max-minutes N` (stop cleanly at the limit), `--name NAME`, and `--resume RUN_ID` to continue an interrupted run or to retry the fetches that failed. A failing source (Semantic Scholar often is rate-limited without an API key) is reported but never stops the run.
 
@@ -45,7 +49,7 @@ Results are written to `out/<run-name>/` and to a SQLite file at `data/litsearch
 
 ## Planned behaviour (version 1)
 
-1. **Generate queries.** *(planned; for now you give the queries yourself)* You describe your research interest in plain language and/or hand over one or more PDFs; a model turns that into many short, diverse queries (synonyms, method names, adjacent terms) and shows you its understanding of the topic for confirmation. You can edit the queries and re-run.
+1. **Generate queries.** You describe your research interest in plain language (PDF input is planned); a model writes a project brief that you can edit, then short, diverse queries (synonyms, method names, adjacent terms) and decides itself how many are needed. You can edit the queries and re-run. *(done, except PDF input)*
 2. **Retrieve from several sources.** OpenAlex (titles and abstracts by default), Semantic Scholar and arXiv; Google Scholar as an optional, low-frequency supplement. *(done, except Google Scholar)*
 3. **De-duplicate** by DOI, arXiv ID and fuzzy title match (preprint and published versions are merged). *(done)*
 4. **Screen (L1).** A cheap model reads title and abstract in batches and returns a score, a reason, a 3-sentence summary and tags. Borderline papers go to a "possibly relevant" bucket instead of being dropped.
@@ -54,7 +58,7 @@ Results are written to `out/<run-name>/` and to a SQLite file at `data/litsearch
 
 What you get is a report under `out/<run-name>/` (`report.md` is written to be dropped into Obsidian). The SQLite database under `data/` is only a disposable working cache (resuming interrupted runs, avoiding paying twice for the same model call, recording which sources failed); it is not a literature library, and you can delete it at any time.
 
-Cost control is part of the design: a `--dry-run` estimate before anything is fetched, a confirmation step, a time limit, call and paper limits, `--resume` for interrupted runs, and caching of every model result. A failing data source never fails the run; it is recorded and shown in the output. The default size is the `quick` profile (about 8 queries, 15 papers per query and source, one snowball round, the model reads at most 150 papers, 10 minutes); `standard` and `deep` search wider. You read only the short ranked list at the top of the report, not everything that was retrieved.
+Cost control is part of the design: a `--dry-run` estimate before anything is fetched, a confirmation step, a time limit, call and paper limits, `--resume` for interrupted runs, and caching of every model result. A failing data source never fails the run; it is recorded and shown in the output. The default size is the `quick` profile (15 papers per query and source, one snowball round, the model reads at most 150 papers, 10 minutes, and a safety ceiling of 15 queries); `standard` and `deep` search wider. The model decides how many queries a topic needs (a narrow topic gets a few, a broad one more); the ceiling only cuts off absurdly long lists. You read only the short ranked list at the top of the report, not everything that was retrieved.
 
 Later phases (not in version 1): skimming PDFs, scheduled monitoring, cross-paper Q&A, review drafts, a conversational front end. See [`SPEC.md`](SPEC.md).
 
@@ -123,7 +127,7 @@ Raw responses are written to `spikes/samples/` (gitignored). Please keep the req
 Everything tunable goes through environment variables or CLI flags; nothing is hard-coded. See [`.env.example`](.env.example), which lists every variable the program reads (a test keeps it in sync):
 
 - Data sources: `CONTACT_EMAIL` (identifier in the `User-Agent` header and the OpenAlex `mailto` parameter, optional), `OPENALEX_API_KEY` (recommended, free), `S2_API_KEY` (optional), `HTTPS_PROXY`, `DATA_DIR` (default `./data`).
-- Models (needed only for the model-based steps of later phases; searching needs none of them): `LLM_API_KEY`, `LLM_BASE_URL` (an API relay, with or without `/v1`; empty means the official APIs), `L1_MODEL` (cheap model that scores papers) and `QUERY_MODEL` (stronger model that writes queries), exactly as your API or relay names them. With the default `LLM_API_FORMAT=auto`, model names starting with `claude` are called in the Anthropic message format and all others (`gpt-*`, `gemini-*`, `deepseek-*`, ...) in the OpenAI chat format, so one key and one base URL can serve both. `ANTHROPIC_API_KEY` / `ANTHROPIC_BASE_URL` still work as older names. Run `litsearch check-llm` to test the settings and, if a model is rejected, to see which names the endpoint offers.
+- Models (needed for `brief`, `queries` and later the scoring; searching with queries you write yourself needs none of them): `LLM_API_KEY`, `LLM_BASE_URL` (an API relay, with or without `/v1`; empty means the official APIs), `L1_MODEL` (cheap model that scores papers) and `QUERY_MODEL` (stronger model that writes the brief and the queries), exactly as your API or relay names them, and `SUMMARY_LANGUAGE` (the language of what the model writes for you to read; default Chinese; search queries are always English). With the default `LLM_API_FORMAT=auto`, model names starting with `claude` are called in the Anthropic message format and all others (`gpt-*`, `gemini-*`, `deepseek-*`, ...) in the OpenAI chat format, so one key and one base URL can serve both. `ANTHROPIC_API_KEY` / `ANTHROPIC_BASE_URL` still work as older names. Run `litsearch check-llm` to test the settings and, if a model is rejected, to see which names the endpoint offers.
 
 Never commit `.env`.
 

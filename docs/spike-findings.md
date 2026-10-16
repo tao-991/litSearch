@@ -202,6 +202,14 @@ A relay that lists 146 models (19 Claude, 63 GPT, 16 Gemini, plus DeepSeek, Qwen
 - All of `claude-haiku-4-5-20251001`, `claude-sonnet-5-5`, `gpt-4.1-nano`, `gpt-4o-mini`, `gemini-3.5-flash-lite`, `deepseek-v4-flash` and the configured `gpt-6.1-sol` answered "OK" in 1–3 s. **`gpt-5-nano` returned an empty reply for `max_tokens=64`: it is a reasoning model and spent all 64 tokens on hidden reasoning.** Scoring prompts must use a non-reasoning model or a generous token budget.
 - Prices of the relay's models were not measured; they have to be read from the relay's price list.
 
+## 6g. Letting the model decide how many queries (Phase 1e, 2026-10-16)
+
+`litsearch brief` and `litsearch queries` were run against the relay (`gpt-6.1-sol`) for the project "how can a coding agent help engineers decide faster whether to accept generated changes". The brief it wrote (in Chinese, as configured) restated the question, listed concepts and angles, said that no related work had been given instead of inventing some, and put eight open questions under "to clarify".
+
+- **A number in the prompt becomes the target.** With the instruction "never write more than N queries" the model wrote exactly 15 queries for N = 15 and 54 for N = 60, and even a one-question topic (Python libraries for the Gini coefficient) got 10 queries, some with names that looked invented.
+- **Fix:** the prompt no longer contains any number; it asks the model to judge the breadth of the topic, not to pad, not to invent names, and to list the queries from most to least important. The ceiling is applied afterwards (the least important queries are cut). Result with the same model: 26 queries for the broad topic (15 kept under the quick ceiling, all 26 with a ceiling of 60) and 2 queries for the one-question topic.
+- A cost of about 700 input and 700–1250 output tokens per query-writing call, and about 220 in / 400 out for a brief.
+
 ## 7. Suggested SPEC changes
 
 These were applied in SPEC v0.3:

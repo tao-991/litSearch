@@ -18,6 +18,13 @@ from litsearch.collectors.base import CollectorError
 from litsearch.config import Settings
 from litsearch.llm import LLMError, build_llm
 from litsearch.pipeline import export
+from litsearch.pipeline.brief import make_brief
+from litsearch.pipeline.queries import (
+    NotCachedError,
+    QueryPlan,
+    generate_queries,
+    write_queries_file,
+)
 from litsearch.pipeline.retrieve import (
     MAX_PER_QUERY,
     OPENALEX_MODES,
@@ -207,6 +214,109 @@ async def _session(
         return run_id, result
 
 
+def _open_db(settings: Settings, db_path: Path | None) -> sqlite3.Connection:
+    database = db_path or settings.data_dir / "litsearch.db"
+    database.parent.mkdir(parents=True, exist_ok=True)
+    conn = db.connect(database)
+    db.init_schema(conn)
+    return conn
+
+
+def _read_text(path: Path, what: str) -> str:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise _fail(f"cannot read {what} {path}: {exc.strerror}") from None
+    if not text.strip():
+        raise _fail(f"{what} {path} is empty")
+    return text
+
+
+def _require_models(settings: Settings, *, need_key: bool = True) -> str:
+    """The query model name, after checking the model settings are filled in."""
+    if need_key and not settings.llm_api_key:
+        raise _fail("LLM_API_KEY is empty; set it in .env (see .env.example)")
+    if not settings.query_model:
+        raise _fail("QUERY_MODEL is empty; set it in .env (see .env.example)")
+    return settings.query_model
+
+
+def _model_call(call: Any) -> Any:
+    """Run an async model call, turning model errors into a readable message."""
+    try:
+        return asyncio.run(call)
+    except LLMError as exc:
+        raise _fail(
+            f"model request failed ({exc.kind}): {exc.message}", code=1
+        ) from None
+
+
+def _print_query_plan(plan: QueryPlan) -> None:
+    where = (
+        "from the cache, no model call"
+        if plan.from_cache
+        else f"{plan.input_tokens} in / {plan.output_tokens} out tokens"
+    )
+    typer.echo(f"{len(plan.queries)} queries (model {plan.model}; {where}):")
+    for index, q in enumerate(plan.queries, start=1):
+        typer.echo(f"  {index:2}. {q.text}" + (f"  - {q.angle}" if q.angle else ""))
+    if plan.n_rejected:
+        typer.echo(
+            f"Note: {plan.n_rejected} unusable or repeated entries were skipped."
+        )
+    if plan.n_over_ceiling:
+        typer.echo(
+            f"Note: the model wrote {plan.n_over_ceiling} more queries than the "
+            "ceiling allows; they were dropped."
+        )
+
+
+async def _generate(
+    settings: Settings,
+    conn: sqlite3.Connection,
+    model: str,
+    project_text: str,
+    max_queries: int,
+    cache_only: bool,
+) -> QueryPlan:
+    llm = None if cache_only else build_llm(settings)
+    try:
+        return await generate_queries(
+            llm,
+            conn,
+            model=model,
+            project=project_text,
+            language=settings.summary_language,
+            max_queries=max_queries,
+            cache_only=cache_only,
+        )
+    finally:
+        if llm is not None:
+            await llm.aclose()
+
+
+def _queries_from_project(
+    settings: Settings,
+    conn: sqlite3.Connection,
+    project_text: str,
+    max_queries: int,
+    dry_run: bool,
+) -> list[str]:
+    model = _require_models(settings, need_key=not dry_run)
+    try:
+        plan = _model_call(
+            _generate(settings, conn, model, project_text, max_queries, dry_run)
+        )
+    except NotCachedError:
+        raise _fail(
+            "no queries were written for this project yet, and a dry run makes no "
+            "model call; run `litsearch queries --project FILE` first",
+            code=1,
+        ) from None
+    _print_query_plan(plan)
+    return [q.text for q in plan.queries]
+
+
 # ------------------------------------------------------------------------- commands
 
 
@@ -249,6 +359,12 @@ def run(
     yes: Annotated[
         bool, typer.Option("--yes", help="Do not ask for confirmation.")
     ] = False,
+    project: Annotated[
+        Path | None,
+        typer.Option(
+            help="Project brief (see `litsearch brief`); the model writes the queries."
+        ),
+    ] = None,
     resume: Annotated[
         int | None, typer.Option(help="Continue the run with this id.")
     ] = None,
@@ -270,7 +386,7 @@ def run(
     conn: sqlite3.Connection | None = None
     run_id: int | None = resume
     if resume is not None:
-        if query or queries_file:
+        if query or queries_file or project:
             raise _fail("--resume continues a stored run; do not give new queries")
         if not database.exists():
             raise _fail(f"no database at {database}")
@@ -286,11 +402,27 @@ def run(
             raise _fail(f"--profile must be one of {', '.join(PROFILES)}")
         if openalex_mode not in OPENALEX_MODES:
             raise _fail(f"--openalex-mode must be one of {', '.join(OPENALEX_MODES)}")
-        queries = list(
-            dict.fromkeys(
-                " ".join(q.split()) for q in _read_queries(query, queries_file)
+        project_text: str | None = None
+        origin = "user"
+        if project is not None:
+            if query or queries_file:
+                raise _fail("give either --project or --query/--queries-file, not both")
+            project_text = _read_text(project, "project brief")
+            if not dry_run or database.exists():
+                conn = _open_db(settings, db_path)
+            else:  # a dry run must not create the database: use a throw-away one
+                conn = db.connect(":memory:")
+                db.init_schema(conn)
+            queries = _queries_from_project(
+                settings, conn, project_text, PROFILES[profile].max_queries, dry_run
             )
-        )
+            origin = "llm"
+        else:
+            queries = list(
+                dict.fromkeys(
+                    " ".join(q.split()) for q in _read_queries(query, queries_file)
+                )
+            )
         if not queries:
             raise _fail("give at least one query with --query or --queries-file")
         chosen = PROFILES[profile]
@@ -310,14 +442,14 @@ def run(
             profile=profile,
             since=since_date.isoformat() if since_date else None,
             max_minutes=minutes or None,
+            project=project_text,
+            query_origin=origin,
         )
         plan_texts = list(
             enumerate(params.queries, start=1)
         )  # ids only matter once stored
-        if not dry_run:
-            database.parent.mkdir(parents=True, exist_ok=True)
-            conn = db.connect(database)
-            db.init_schema(conn)
+        if not dry_run and conn is None:
+            conn = _open_db(settings, db_path)
     if conn is None:  # a dry run without --resume does not touch the database
         conn = db.connect(":memory:")
         db.init_schema(conn)
@@ -354,6 +486,107 @@ def run(
     for line in _result_lines(summary, result):
         typer.echo(line)
     typer.echo(f"Files: {folder / 'candidates.csv'} and {folder / 'candidates.md'}")
+
+
+@app.command()
+def brief(
+    about: Annotated[
+        str | None, typer.Option(help="Your research interest, in your own words.")
+    ] = None,
+    about_file: Annotated[
+        Path | None, typer.Option(help="Read the description from this text file.")
+    ] = None,
+    out: Annotated[Path, typer.Option(help="Where to write the brief.")] = Path(
+        "project.md"
+    ),
+    force: Annotated[
+        bool, typer.Option("--force", help="Overwrite the brief if it exists.")
+    ] = False,
+    db_path: Annotated[
+        Path | None,
+        typer.Option("--db", help="SQLite file (default: <DATA_DIR>/litsearch.db)."),
+    ] = None,
+) -> None:
+    """Turn your description into a project brief that you can read and edit."""
+    settings = Settings.from_env(env_file=Path(".env"))
+    model = _require_models(settings)
+    parts = [
+        t for t in (about, _read_text(about_file, "file") if about_file else None) if t
+    ]
+    if not parts:
+        raise _fail('describe your research with --about "..." or --about-file FILE')
+    if out.exists() and not force:
+        raise _fail(f"{out} already exists; use --force to overwrite it or --out NAME")
+    conn = _open_db(settings, db_path)
+
+    async def write() -> Any:
+        llm = build_llm(settings)
+        try:
+            return await make_brief(
+                llm,
+                conn,
+                model=model,
+                about="\n\n".join(parts),
+                language=settings.summary_language,
+            )
+        finally:
+            await llm.aclose()
+
+    result = _model_call(write())
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(result.text + "\n", encoding="utf-8")
+    where = (
+        "from the cache, no model call"
+        if result.from_cache
+        else f"{result.input_tokens} in / {result.output_tokens} out tokens"
+    )
+    typer.echo(result.text)
+    typer.echo(f"\nBrief written to {out} (model {result.model}; {where}).")
+    typer.echo("Read it, edit it if the model misunderstood something, then run:")
+    typer.echo(f"  litsearch run --project {out}")
+
+
+@app.command()
+def queries(
+    project: Annotated[
+        Path, typer.Option(help="Project brief (see `litsearch brief`).")
+    ],
+    max_queries: Annotated[
+        int | None,
+        typer.Option(help="Safety ceiling on the number of queries (profile default)."),
+    ] = None,
+    profile: Annotated[
+        str, typer.Option(help="Profile that sets the default ceiling.")
+    ] = DEFAULT_PROFILE,
+    out: Annotated[Path, typer.Option(help="Where to write the queries.")] = Path(
+        "queries.txt"
+    ),
+    force: Annotated[
+        bool, typer.Option("--force", help="Overwrite the queries file if it exists.")
+    ] = False,
+    db_path: Annotated[
+        Path | None,
+        typer.Option("--db", help="SQLite file (default: <DATA_DIR>/litsearch.db)."),
+    ] = None,
+) -> None:
+    """Let the model write search queries for a project brief (you can edit them)."""
+    settings = Settings.from_env(env_file=Path(".env"))
+    model = _require_models(settings)
+    if profile not in PROFILES:
+        raise _fail(f"--profile must be one of {', '.join(PROFILES)}")
+    ceiling = max_queries if max_queries is not None else PROFILES[profile].max_queries
+    if ceiling < 1:
+        raise _fail("--max-queries must be at least 1")
+    project_text = _read_text(project, "project brief")
+    if out.exists() and not force:
+        raise _fail(f"{out} already exists; use --force to overwrite it or --out NAME")
+    conn = _open_db(settings, db_path)
+    plan = _model_call(_generate(settings, conn, model, project_text, ceiling, False))
+    _print_query_plan(plan)
+    write_queries_file(plan, out, force=force)
+    typer.echo(f"\nWritten to {out}. Edit it if you like, then run one of:")
+    typer.echo(f"  litsearch run --queries-file {out}")
+    typer.echo(f"  litsearch run --project {project}   (uses the same queries)")
 
 
 @app.command()

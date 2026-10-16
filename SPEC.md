@@ -34,11 +34,13 @@ The tool searches broadly so that recall is high, but a person only ever reads t
 
 Three profiles set the defaults of the size-related options (`--profile quick|standard|deep`); every value can still be overridden. **The default profile is `quick`** (decision 2026-10-16). The numbers are initial values, to be tuned during Phase 1 acceptance:
 
-| Profile | Queries | Papers per query and source | Snowball rounds | Model reads at most | Time limit |
+| Profile | Query ceiling | Papers per query and source | Snowball rounds | Model reads at most | Time limit |
 |---|---|---|---|---|---|
-| `quick` (default) | about 8 | 15 | 1 | 150 papers | 10 min |
-| `standard` | about 20 | 30 | 2 | 500 papers | 30 min |
-| `deep` | about 40 | 50 | 3 | 1500 papers | 60 min |
+| `quick` (default) | 15 | 15 | 1 | 150 papers | 10 min |
+| `standard` | 30 | 30 | 2 | 500 papers | 30 min |
+| `deep` | 60 | 50 | 3 | 1500 papers | 60 min |
+
+**The number of queries is decided by the model** from the breadth of the topic (a narrow topic gets a handful, a broad one more). The "query ceiling" is only a safety limit applied *afterwards*: if the model writes more, the most important ones (it lists them first) are kept and the user is told how many were dropped. The ceiling is deliberately not mentioned in the prompt, because in Phase 1 tests a number in the prompt made the model write that many queries (ceiling 15 gave 15, ceiling 60 gave 54, even for a tiny topic).
 
 ## 2. Reading funnel (mimicking how people read)
 
@@ -63,7 +65,7 @@ Principle: **the lower the level, the more expensive it is, so only papers that 
 
 ### 3.2 Query generation
 
-The model generates N diverse queries from the input (synonyms, method names, different phrasings of the question, terms from adjacent fields) and stores them in the database; they are also exported to `queries.yaml`, which the user can edit and re-run. Each query records its hit count per source and its "effective hit count" (score at or above the threshold).
+The model reads the project brief and writes the search queries, **deciding for itself how many are needed** (see §1.3 for the safety ceiling). Each query comes with a short "angle" label in the user's language so the list can be reviewed; queries themselves are always English. The queries are stored in the database (`origin = llm`) and can be exported to a plain text file (`litsearch queries` writes `queries.txt`, one query per line, angles as `#` comments) which the user can edit and re-run with `--queries-file`. The model's answer is cached by (input hash, prompt version, model), so asking again costs nothing. Each query also records its hit counts per source and its "effective hit count" (score at or above the threshold).
 
 Phase 0 findings that shape query generation:
 
@@ -97,7 +99,7 @@ Each round counts "new papers at or above the threshold". Stop when any conditio
 
 ### 3.8 Budget and confirmation
 
-- `--dry-run`: prints the plan and the estimate (requests per source, expected duration, upper bound on results, **expected OpenAlex credits** next to the remaining quota read from the response headers of a free single-work lookup) and stops. It fetches no search results, stores nothing and **does not call the model**. With `--resume` it shows only the work still to do.
+- `--dry-run`: prints the plan and the estimate (with `--project`, queries must already be cached: a dry run never calls the model) (requests per source, expected duration, upper bound on results, **expected OpenAlex credits** next to the remaining quota read from the response headers of a free single-work lookup) and stops. It fetches no search results, stores nothing and **does not call the model**. With `--resume` it shows only the work still to do.
 - Before a real run, show the same estimate and ask for confirmation (`--yes` skips it).
 - Limits: `--max-scored` (maximum papers to score), `--max-llm-calls`, `--max-minutes` (wall-clock limit: when it is reached the run stops cleanly, saves what it has and still writes the report). When more candidates exist than `--max-scored` allows, the best-ranked ones (by position in the source result lists, interleaved across queries and sources) are scored first.
 - Every step is written to the database; `--resume RUN_ID` continues an interrupted run.
@@ -146,6 +148,7 @@ RRI (`nhdandz/RRI`, MIT) `src/collectors/base.py` (RateLimiter, CircuitBreaker, 
 - **hits**: id, run_id, query_id (NULL for papers found by snowballing), source, paper_id, rank, round.
 - **scores** (the LLM result cache): paper_id, project_hash, input_hash (hash of the title and abstract that were scored), prompt_version, model, score, reason, summary, tags (JSON); the primary key is (paper_id, project_hash, input_hash, prompt_version, model).
 - **edges**: src_paper_id, dst_paper_id, kind (`cites`).
+- **llm_cache**: id, task (`brief`, `queries`, later `score`), input_hash, prompt_version, model, output (the model's raw answer), input_tokens, output_tokens, created_at; unique per (task, input_hash, prompt_version, model). The L1 scores keep their own cache in `scores`.
 - **source_runs**: id, run_id, source, status (`ok`/`blocked`/`rate_limited`/`error`/`skipped`), n_requests, n_results, error; unique per (run, source). **This is the key to "failures are visible" and must appear in the report.**
 
 ### 5.2 De-duplication rules
@@ -211,7 +214,11 @@ Hard rule: **every link, DOI, author and year must come from fields returned by 
 
 ```
 litsearch init                         # generate a project.md template and .env.example
-litsearch run --query "..." [--query "..."] [--queries-file FILE]     # Phase 1d: queries given by hand
+litsearch brief --about "..." [--about-file FILE] [--out project.md]   # model writes a project brief for you to read and edit
+litsearch queries --project project.md [--out queries.txt]            # model writes the search queries (editable file)
+litsearch run --project project.md ...                                # queries from the brief (cached), then search
+litsearch run --query "..." [--query "..."] [--queries-file FILE]     # queries given by hand
+litsearch check-llm                                                   # test the model settings in .env
 litsearch run --project project.md [--profile quick|standard|deep] [--rounds N] [--per-query N]
               [--sources openalex,s2,arxiv] [--openalex-mode title-abstract|fulltext|both] [--gs]
               [--saturation 3] [--max-scored N] [--max-llm-calls N] [--max-minutes N] [--top N]
@@ -233,6 +240,7 @@ LLM_BASE_URL=                     # optional; base URL of an API relay, with or 
 LLM_API_FORMAT=                   # optional: auto (default), anthropic or openai
 ANTHROPIC_API_KEY=                # older name of LLM_API_KEY, still accepted
 ANTHROPIC_BASE_URL=               # older name of LLM_BASE_URL, still accepted
+SUMMARY_LANGUAGE=                 # language of briefs, summaries and reasons; default Chinese (queries are always English)
 L1_MODEL=                         # cheap model for L1 scoring, exactly as the API or relay names it
 QUERY_MODEL=                      # stronger model for query generation; same note
 DATA_DIR=                         # default ./data

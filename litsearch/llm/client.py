@@ -147,26 +147,32 @@ class LLMClient(HttpCollector):
         if temperature is not None:
             body["temperature"] = temperature
 
-        try:
-            response = await self._request("POST", url, headers=headers, json=body)
-        except CollectorError as exc:
-            if (
-                fmt == "openai"
-                and exc.http_status == 400
-                and "max_completion_tokens" in (exc.detail or "")
-                and "max_tokens" in body
-            ):
-                # newer OpenAI models want the other name for the same limit
-                body["max_completion_tokens"] = body.pop("max_tokens")
-                try:
-                    response = await self._request(
-                        "POST", url, headers=headers, json=body
-                    )
-                except CollectorError as again:
-                    raise self._error(again) from None
-            else:
+        adjustments_left = 2
+        while True:
+            try:
+                response = await self._request("POST", url, headers=headers, json=body)
+                break
+            except CollectorError as exc:
+                if adjustments_left and self._adjust(fmt, exc, body):
+                    adjustments_left -= 1
+                    continue
                 raise self._error(exc) from None
         return self._parse(fmt, response, model)
+
+    @staticmethod
+    def _adjust(fmt: str, exc: CollectorError, body: dict[str, Any]) -> bool:
+        """Change the request after a 400 that names a parameter this model dislikes."""
+        if fmt != "openai" or exc.http_status != 400:
+            return False
+        detail = (exc.detail or "").lower()
+        if "max_completion_tokens" in detail and "max_tokens" in body:
+            # newer OpenAI models want the other name for the same limit
+            body["max_completion_tokens"] = body.pop("max_tokens")
+            return True
+        if "response_format" in detail and "response_format" in body:
+            body.pop("response_format")  # the prompt asks for JSON anyway
+            return True
+        return False
 
     def _parse(self, fmt: str, response: httpx.Response, model: str) -> LLMReply:
         try:

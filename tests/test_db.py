@@ -18,6 +18,7 @@ EXPECTED_TABLES = {
     "edges",
     "source_runs",
     "fetches",
+    "llm_cache",
 }
 
 
@@ -303,3 +304,19 @@ def test_fetches_are_unique_per_query_source_and_variant(
         conn.execute(sql, (run_id, query_id, "arxiv", "", "done"))
     with pytest.raises(sqlite3.IntegrityError), conn:
         conn.execute(sql, (run_id, query_id, "s2", "", "exploded"))
+
+
+def test_upgrade_from_schema_v2_adds_the_model_cache(tmp_path: Path) -> None:
+    path = tmp_path / "v2.db"
+    old = db.connect(path)
+    old.executescript(db._SCHEMA_V1)
+    old.executescript(db._MIGRATION_V2)
+    old.execute("INSERT INTO runs (project_hash, name) VALUES ('abc', 'kept')")
+    old.commit()
+    assert db.schema_version(old) == 2
+
+    db.init_schema(old)
+    assert db.schema_version(old) == db.SCHEMA_VERSION
+    assert "llm_cache" in _tables(old)
+    assert old.execute("SELECT name FROM runs").fetchone()[0] == "kept"
+    old.close()

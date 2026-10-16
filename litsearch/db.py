@@ -18,7 +18,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 RUN_TERMINAL_STATUSES = frozenset({"completed", "failed", "interrupted"})
 
@@ -168,6 +168,29 @@ COMMIT;
 """
 
 
+# v3: cache of model answers, keyed by (task, input hash, prompt version, model), so the
+# same input never costs a second model call (CLAUDE.md: LLM results are always cached).
+_MIGRATION_V3 = """
+BEGIN;
+
+CREATE TABLE llm_cache (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    task           TEXT NOT NULL,
+    input_hash     TEXT NOT NULL,
+    prompt_version TEXT NOT NULL,
+    model          TEXT NOT NULL,
+    output         TEXT NOT NULL,
+    input_tokens   INTEGER,
+    output_tokens  INTEGER,
+    created_at     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    UNIQUE (task, input_hash, prompt_version, model)
+);
+
+PRAGMA user_version = 3;
+COMMIT;
+"""
+
+
 class SchemaError(RuntimeError):
     """The database was created by a newer version of litsearch."""
 
@@ -206,6 +229,9 @@ def init_schema(conn: sqlite3.Connection) -> None:
         version = 1
     if version < 2:
         conn.executescript(_MIGRATION_V2)
+        version = 2
+    if version < 3:
+        conn.executescript(_MIGRATION_V3)
 
 
 def dumps_json(value: Any) -> str:

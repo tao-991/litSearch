@@ -218,6 +218,40 @@ def test_newer_openai_models_get_max_completion_tokens_after_a_rejection() -> No
     assert reply.text == "OK"
 
 
+def test_a_model_that_rejects_json_mode_is_asked_again_without_it() -> None:
+    rejection = json_response(
+        {"error": {"message": "response_format is not supported by this model"}}, 400
+    )
+    server = Server([rejection, json_response(OPENAI_REPLY)])
+    reply = run(make(server).complete(model="gpt-5-nano", user="hi", json_mode=True))
+    _, first = sent(server, 0)
+    _, second = sent(server, 1)
+    assert "response_format" in first
+    assert "response_format" not in second
+    assert reply.text == "OK"
+
+
+def test_several_parameter_rejections_are_handled_in_turn() -> None:
+    server = Server(
+        [
+            json_response({"error": {"message": "unsupported response_format"}}, 400),
+            json_response({"error": {"message": "use max_completion_tokens"}}, 400),
+            json_response(OPENAI_REPLY),
+        ]
+    )
+    reply = run(make(server).complete(model="gpt-5-nano", user="hi", json_mode=True))
+    _, last = sent(server, 2)
+    assert "response_format" not in last and "max_tokens" not in last
+    assert reply.text == "OK"
+
+
+def test_an_unrelated_400_is_not_retried() -> None:
+    server = Server([json_response({"error": {"message": "context too long"}}, 400)])
+    with pytest.raises(LLMError):
+        run(make(server).complete(model="gpt-5-nano", user="hi", json_mode=True))
+    assert len(server.requests) == 1
+
+
 # ------------------------------------------------------------------------- errors
 
 
