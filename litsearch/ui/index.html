@@ -348,6 +348,7 @@ function initOptions(s) {
 }
 function applyProfile() {
   var p = state.profiles[$('profile').value];
+  Array.prototype.forEach.call($('sources').querySelectorAll('input'), function (i) { i.checked = p.sources.indexOf(i.value) >= 0; });
   $('per-query').value = p.per_query; $('max-minutes').value = p.max_minutes; $('max-scored').value = p.max_scored;
 }
 $('profile').addEventListener('change', applyProfile);

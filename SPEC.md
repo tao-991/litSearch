@@ -32,10 +32,11 @@ Version 1 should: given a "project description + keywords + optional seed papers
 
 The tool searches broadly so that recall is high, but a person only ever reads the short ranked list at the top of the report (the first 30 or so papers, plus a collapsed "possibly relevant" section). Single user, command line.
 
-Three profiles set the defaults of the size-related options (`--profile quick|standard|deep`); every value can still be overridden. **The default profile is `quick`** (decision 2026-10-16). The numbers are initial values, to be tuned during Phase 1 acceptance:
+Three profiles (plus a tiny `test` profile for trying the tool: arXiv only, 5 papers per query, 2 queries, 5 papers scored, 3 min) set the defaults of the size-related options (`--profile quick|standard|deep`); every value can still be overridden. **The default profile is `quick`** (decision 2026-10-16). The numbers are initial values, to be tuned during Phase 1 acceptance:
 
 | Profile | Query ceiling | Papers per query and source | Snowball rounds | Model reads at most | Time limit |
 |---|---|---|---|---|---|
+| `test` (arXiv only) | 2 | 5 | 0 | 5 papers | 3 min |
 | `quick` (default) | 5 | 15 | 1 | 150 papers | 10 min |
 | `standard` | 10 | 30 | 2 | 500 papers | 30 min |
 | `deep` | 20 | 50 | 3 | 1500 papers | 60 min |
@@ -227,7 +228,7 @@ litsearch queries --project project.md [--out queries.txt]            # model wr
 litsearch run --project project.md ...                                # queries from the brief (cached), then search
 litsearch run --query "..." [--query "..."] [--queries-file FILE]     # queries given by hand
 litsearch check-llm                                                   # test the model settings in .env
-litsearch run --project project.md [--profile quick|standard|deep] [--rounds N] [--per-query N]
+litsearch run --project project.md [--profile test|quick|standard|deep] [--rounds N] [--per-query N]
               [--sources openalex,s2,arxiv] [--openalex-mode title-abstract|fulltext|both] [--gs]
               [--saturation 3] [--max-scored N] [--max-llm-calls N] [--max-minutes N] [--top N]
               [--no-score] [--score-batch N] [--min-score N] [--maybe-score N]

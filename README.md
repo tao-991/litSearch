@@ -67,7 +67,7 @@ Papers are scored by the model after the search (use `--no-score` to skip it; `l
 
 `litsearch run --project project.md` does step 2 and 3 in one go (the queries are cached, so a repeat costs nothing). You can also skip the model and give queries yourself: `litsearch run -q "first query" -q "second query"`.
 
-Useful options (see `litsearch run --help`): `--queries-file FILE` (one query per line, `#` for comments), `--profile quick|standard|deep` (how much to search; `quick` is the default), `--per-query N`, `--sources openalex,s2,arxiv`, `--openalex-mode title-abstract|fulltext|both`, `--since 2024-01-01`, `--max-minutes N` (stop cleanly at the limit), `--name NAME`, and `--resume RUN_ID` to continue an interrupted run or to retry the fetches that failed. A failing source (Semantic Scholar often is rate-limited without an API key) is reported but never stops the run.
+Useful options (see `litsearch run --help`): `--queries-file FILE` (one query per line, `#` for comments), `--profile test|quick|standard|deep` (how much to search; `quick` is the default; `test` is a tiny trial: arXiv only, 5 papers per query, at most 2 queries and 5 papers scored), `--per-query N`, `--sources openalex,s2,arxiv`, `--openalex-mode title-abstract|fulltext|both`, `--since 2024-01-01`, `--max-minutes N` (stop cleanly at the limit), `--name NAME`, and `--resume RUN_ID` to continue an interrupted run or to retry the fetches that failed. A failing source (Semantic Scholar often is rate-limited without an API key) is reported but never stops the run.
 
 Results are written to `out/<run-name>/` and to a SQLite file at `data/litsearch.db`; both are gitignored, and the database is only a working cache that you may delete.
 

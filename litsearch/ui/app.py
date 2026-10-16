@@ -223,6 +223,7 @@ class UiApp:
                     "per_query": p.per_query,
                     "max_scored": p.max_scored,
                     "max_minutes": p.max_minutes,
+                    "sources": list(p.sources or SOURCE_NAMES),
                 }
                 for name, p in PROFILES.items()
             },
@@ -472,7 +473,7 @@ class UiApp:
         if profile not in PROFILES:
             raise UiError("Unknown profile.")
         chosen = PROFILES[profile]
-        sources = payload.get("sources") or list(SOURCE_NAMES)
+        sources = payload.get("sources") or list(chosen.sources or SOURCE_NAMES)
         if (
             not isinstance(sources, list)
             or not sources

@@ -261,3 +261,14 @@ def test_idle_and_quit(env: Env) -> None:
     assert env.app.idle_seconds() == 0.0
     env.call("POST", "/api/quit", {})
     assert env.app.quit_requested
+
+
+def test_test_profile_means_arxiv_only_five_papers(env: Env) -> None:
+    _, state = env.call("GET", "/api/state")
+    assert state["profiles"]["test"]["sources"] == ["arxiv"]
+    assert state["profiles"]["test"]["per_query"] == 5
+    params, _ = env.app._parse_run(
+        {"queries": ["a b"], "profile": "test", "scoring": {"enabled": False}},
+        env.app.settings(),
+    )
+    assert params.sources == ("arxiv",) and params.per_query == 5

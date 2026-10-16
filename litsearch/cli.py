@@ -347,15 +347,19 @@ def run(
         typer.Option(help="Text file with one query per line (# starts a comment)."),
     ] = None,
     profile: Annotated[
-        str, typer.Option(help="Size of the search: quick, standard or deep.")
+        str, typer.Option(help="Size of the search: test, quick, standard or deep.")
     ] = DEFAULT_PROFILE,
     per_query: Annotated[
         int | None,
         typer.Option(help="Papers requested per query and source (profile default)."),
     ] = None,
     sources: Annotated[
-        str, typer.Option(help="Comma-separated: openalex, s2, arxiv.")
-    ] = ",".join(SOURCE_NAMES),
+        str | None,
+        typer.Option(
+            help="Comma-separated: openalex, s2, arxiv (profile default: all, "
+            "but only arxiv for the test profile)."
+        ),
+    ] = None,
     openalex_mode: Annotated[
         str, typer.Option(help="OpenAlex search: title-abstract, fulltext or both.")
     ] = "title-abstract",
@@ -471,7 +475,11 @@ def run(
         minutes = chosen.max_minutes if max_minutes is None else max_minutes
         params = RunParams(
             queries=tuple(queries),
-            sources=_parse_sources(sources),
+            sources=(
+                _parse_sources(sources)
+                if sources is not None
+                else chosen.sources or tuple(SOURCE_NAMES)
+            ),
             per_query=size,
             openalex_mode=openalex_mode,
             profile=profile,
