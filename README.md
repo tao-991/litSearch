@@ -31,7 +31,7 @@ On a Mac you can also double-click `start.command`. Everything is done on that p
 enter your API key and models on the Settings tab (saved to `.env`, never shown again),
 describe your research, check the brief and the queries, see the cost estimate, start the
 search and watch it run, then open the ranked list. Earlier runs are on the "Past runs"
-tab. The page only listens on your own computer, and the program stops by itself a few
+tab. The size you pick (test, quick, standard, deep) also caps how many of your queries are searched; the page tells you when it cuts some. The page only listens on your own computer, and the program stops by itself a few
 minutes after you close the page (or press Quit).
 
 ### The command line

@@ -288,3 +288,15 @@ def test_keep_alive_survives_a_body_the_handler_ignores(env: Env) -> None:
     conn.request("GET", "/api/state", headers={"X-Token": env.server.token})
     assert conn.getresponse().status == 200
     conn.close()
+
+
+def test_profile_ceiling_limits_the_queries_that_are_searched(env: Env) -> None:
+    params, _ = env.app._parse_run(
+        {
+            "queries": ["a b", "c d", "e f", "g h"],
+            "profile": "test",
+            "scoring": {"enabled": False},
+        },
+        env.app.settings(),
+    )
+    assert params.queries == ("a b", "c d")

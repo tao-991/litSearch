@@ -473,6 +473,7 @@ class UiApp:
         if profile not in PROFILES:
             raise UiError("Unknown profile.")
         chosen = PROFILES[profile]
+        queries = queries[: chosen.max_queries]  # the size of the search is a ceiling
         sources = payload.get("sources") or list(chosen.sources or SOURCE_NAMES)
         if (
             not isinstance(sources, list)

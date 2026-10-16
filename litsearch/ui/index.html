@@ -128,7 +128,8 @@ engineers decide faster whether to accept the code changes it just generated."><
 
       <div class="grid" style="margin-top:8px">
         <div><label for="profile">Size of the search</label>
-          <select id="profile"></select></div>
+          <select id="profile"></select>
+          <div class="hint" id="profile-note" style="margin:4px 0 0"></div></div>
         <div><label class="check" style="margin-top:30px"><input type="checkbox" id="score-on"
           checked> Score the papers with the model</label></div>
       </div>
@@ -349,8 +350,13 @@ function initOptions(s) {
   });
   applyProfile();
 }
+function profileNote() {
+  var p = state.profiles[$('profile').value], n = readQueries().length;
+  $('profile-note').textContent = n > p.max_queries ? 'Only the first ' + p.max_queries + ' of your ' + n + ' queries will be searched. Choose a bigger size to use all of them.' : '';
+}
 function applyProfile() {
   var p = state.profiles[$('profile').value];
+  profileNote();
   Array.prototype.forEach.call($('sources').querySelectorAll('input'), function (i) { i.checked = p.sources.indexOf(i.value) >= 0; });
   $('per-query').value = p.per_query; $('max-minutes').value = p.max_minutes; $('max-scored').value = p.max_scored;
 }
@@ -401,15 +407,16 @@ function setQueries(list) {
   var box = $('queries'); clear(box);
   list.forEach(function (q) { addQueryRow(q.query, q.angle); });
   $('card-queries').hidden = false;
+  if (state) profileNote();
 }
 function addQueryRow(text, angle) {
   var input = el('input', {type: 'text', maxlength: '200'});
   input.value = text || '';
-  input.addEventListener('input', saveDraft);
+  input.addEventListener('input', function () { saveDraft(); profileNote(); });
   var x = el('button', {'class': 'x', type: 'button', title: 'Delete', text: '×'});
   var row = el('div', {'class': 'qrow'}, input, x);
   if (angle) row.appendChild(el('div', {'class': 'angle', text: angle}));
-  x.addEventListener('click', function () { row.remove(); saveDraft(); });
+  x.addEventListener('click', function () { row.remove(); saveDraft(); profileNote(); });
   $('queries').appendChild(row);
   return input;
 }
@@ -417,7 +424,7 @@ function readQueries() {
   return Array.prototype.map.call($('queries').querySelectorAll('input'), function (i) { return {query: i.value.trim()}; })
     .filter(function (q) { return q.query; });
 }
-$('add-query').addEventListener('click', function () { addQueryRow('', '').focus(); });
+$('add-query').addEventListener('click', function () { addQueryRow('', '').focus(); profileNote(); });
 
 $('btn-queries').addEventListener('click', function () {
   var btn = $('btn-queries');
