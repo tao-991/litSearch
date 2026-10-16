@@ -74,6 +74,10 @@ def main(
 # ------------------------------------------------------------------------- helpers
 
 
+def _queries(count: int) -> str:
+    return f"{count} {'query' if count == 1 else 'queries'}"
+
+
 def _fail(message: str, code: int = 2) -> typer.Exit:
     typer.echo(f"Error: {message}", err=True)
     return typer.Exit(code)
@@ -122,7 +126,7 @@ def _plan_lines(
     )
     lines = [
         f"{'Remaining work of the run' if resuming else 'Plan'}: "
-        f"{len(params.queries)} queries, sources {', '.join(params.sources)}{modes}, "
+        f"{_queries(len(params.queries))}, sources {', '.join(params.sources)}{modes}, "
         f"up to {params.per_query} papers per query and source, "
         f"profile {params.profile}, {limit}",
         f"Requests: {requests} ({est.total_requests} in total)",
@@ -257,7 +261,7 @@ def _print_query_plan(plan: QueryPlan) -> None:
         if plan.from_cache
         else f"{plan.input_tokens} in / {plan.output_tokens} out tokens"
     )
-    typer.echo(f"{len(plan.queries)} queries (model {plan.model}; {where}):")
+    typer.echo(f"{_queries(len(plan.queries))} (model {plan.model}; {where}):")
     for index, q in enumerate(plan.queries, start=1):
         typer.echo(f"  {index:2}. {q.text}" + (f"  - {q.angle}" if q.angle else ""))
     if plan.n_rejected:
@@ -615,7 +619,7 @@ def status(
         raise _fail(str(exc), code=1) from None
     typer.echo(f"{summary.name} (id {summary.run_id}): {summary.status}")
     typer.echo(f"Started {summary.started_at}, finished {summary.finished_at or '-'}")
-    typer.echo(f"{summary.n_queries} queries, {summary.n_papers} distinct papers")
+    typer.echo(f"{_queries(summary.n_queries)}, {summary.n_papers} distinct papers")
     typer.echo("Sources:")
     for s in summary.sources:
         note = f"  ({s.error})" if s.error else ""

@@ -209,6 +209,7 @@ A relay that lists 146 models (19 Claude, 63 GPT, 16 Gemini, plus DeepSeek, Qwen
 - **A number in the prompt becomes the target.** With the instruction "never write more than N queries" the model wrote exactly 15 queries for N = 15 and 54 for N = 60, and even a one-question topic (Python libraries for the Gini coefficient) got 10 queries, some with names that looked invented.
 - **Fix:** the prompt no longer contains any number; it asks the model to judge the breadth of the topic, not to pad, not to invent names, and to list the queries from most to least important. The ceiling is applied afterwards (the least important queries are cut). Result with the same model: 26 queries for the broad topic (15 kept under the quick ceiling, all 26 with a ceiling of 60) and 2 queries for the one-question topic.
 - A cost of about 700 input and 700–1250 output tokens per query-writing call, and about 220 in / 400 out for a brief.
+- **Too many even then.** 26 queries was judged far too broad for a literature review (the prompt had asked to cover adjacent fields and human-factors angles). The prompt was changed to ask for a *focused* review: precision first, another query only if it finds papers the earlier ones would miss, no branching into adjacent fields. Result with the same model and no ceiling shown to it: 5 queries for the broad topic and 1 for the one-question topic. The profile ceilings were lowered to 5 / 10 / 20.
 
 ## 7. Suggested SPEC changes
 

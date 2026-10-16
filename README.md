@@ -49,7 +49,7 @@ Results are written to `out/<run-name>/` and to a SQLite file at `data/litsearch
 
 ## Planned behaviour (version 1)
 
-1. **Generate queries.** You describe your research interest in plain language (PDF input is planned); a model writes a project brief that you can edit, then short, diverse queries (synonyms, method names, adjacent terms) and decides itself how many are needed. You can edit the queries and re-run. *(done, except PDF input)*
+1. **Generate queries.** You describe your research interest in plain language (PDF input is planned); a model writes a project brief that you can edit, then a few focused queries (an established term for the core concept, plus a sub-question only if the brief names one) and decides itself how many are needed. You can edit the queries and re-run. *(done, except PDF input)*
 2. **Retrieve from several sources.** OpenAlex (titles and abstracts by default), Semantic Scholar and arXiv; Google Scholar as an optional, low-frequency supplement. *(done, except Google Scholar)*
 3. **De-duplicate** by DOI, arXiv ID and fuzzy title match (preprint and published versions are merged). *(done)*
 4. **Screen (L1).** A cheap model reads title and abstract in batches and returns a score, a reason, a 3-sentence summary and tags. Borderline papers go to a "possibly relevant" bucket instead of being dropped.
@@ -58,7 +58,7 @@ Results are written to `out/<run-name>/` and to a SQLite file at `data/litsearch
 
 What you get is a report under `out/<run-name>/` (`report.md` is written to be dropped into Obsidian). The SQLite database under `data/` is only a disposable working cache (resuming interrupted runs, avoiding paying twice for the same model call, recording which sources failed); it is not a literature library, and you can delete it at any time.
 
-Cost control is part of the design: a `--dry-run` estimate before anything is fetched, a confirmation step, a time limit, call and paper limits, `--resume` for interrupted runs, and caching of every model result. A failing data source never fails the run; it is recorded and shown in the output. The default size is the `quick` profile (15 papers per query and source, one snowball round, the model reads at most 150 papers, 10 minutes, and a safety ceiling of 15 queries); `standard` and `deep` search wider. The model decides how many queries a topic needs (a narrow topic gets a few, a broad one more); the ceiling only cuts off absurdly long lists. You read only the short ranked list at the top of the report, not everything that was retrieved.
+Cost control is part of the design: a `--dry-run` estimate before anything is fetched, a confirmation step, a time limit, call and paper limits, `--resume` for interrupted runs, and caching of every model result. A failing data source never fails the run; it is recorded and shown in the output. The default size is the `quick` profile (15 papers per query and source, one snowball round, the model reads at most 150 papers, 10 minutes, and a safety ceiling of 5 queries); `standard` (10) and `deep` (20) search wider. The model decides how many queries a topic needs, and is told to be focused (a literature review, not an exploration); the ceiling only cuts off long lists, keeping the most important queries. You read only the short ranked list at the top of the report, not everything that was retrieved.
 
 Later phases (not in version 1): skimming PDFs, scheduled monitoring, cross-paper Q&A, review drafts, a conversational front end. See [`SPEC.md`](SPEC.md).
 

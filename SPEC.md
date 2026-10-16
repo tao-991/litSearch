@@ -36,11 +36,11 @@ Three profiles set the defaults of the size-related options (`--profile quick|st
 
 | Profile | Query ceiling | Papers per query and source | Snowball rounds | Model reads at most | Time limit |
 |---|---|---|---|---|---|
-| `quick` (default) | 15 | 15 | 1 | 150 papers | 10 min |
-| `standard` | 30 | 30 | 2 | 500 papers | 30 min |
-| `deep` | 60 | 50 | 3 | 1500 papers | 60 min |
+| `quick` (default) | 5 | 15 | 1 | 150 papers | 10 min |
+| `standard` | 10 | 30 | 2 | 500 papers | 30 min |
+| `deep` | 20 | 50 | 3 | 1500 papers | 60 min |
 
-**The number of queries is decided by the model** from the breadth of the topic (a narrow topic gets a handful, a broad one more). The "query ceiling" is only a safety limit applied *afterwards*: if the model writes more, the most important ones (it lists them first) are kept and the user is told how many were dropped. The ceiling is deliberately not mentioned in the prompt, because in Phase 1 tests a number in the prompt made the model write that many queries (ceiling 15 gave 15, ceiling 60 gave 54, even for a tiny topic).
+**The number of queries is decided by the model**, and the queries are meant for a *focused literature review*, not for exploration: each one targets the core of the research question, and another one is added only if it finds papers the earlier ones would miss (a different established term for the same concept, or a sub-question named in the brief). The model is told not to branch into adjacent fields or general background. The "query ceiling" is only a safety limit applied *afterwards*: if the model writes more, the most important ones (it lists them first) are kept and the user is told how many were dropped. The ceiling is deliberately not mentioned in the prompt, because in Phase 1 tests a number in the prompt made the model write that many queries (ceiling 15 gave 15, ceiling 60 gave 54, even for a tiny topic).
 
 ## 2. Reading funnel (mimicking how people read)
 
@@ -65,7 +65,7 @@ Principle: **the lower the level, the more expensive it is, so only papers that 
 
 ### 3.2 Query generation
 
-The model reads the project brief and writes the search queries, **deciding for itself how many are needed** (see §1.3 for the safety ceiling). Each query comes with a short "angle" label in the user's language so the list can be reviewed; queries themselves are always English. The queries are stored in the database (`origin = llm`) and can be exported to a plain text file (`litsearch queries` writes `queries.txt`, one query per line, angles as `#` comments) which the user can edit and re-run with `--queries-file`. The model's answer is cached by (input hash, prompt version, model), so asking again costs nothing. Each query also records its hit counts per source and its "effective hit count" (score at or above the threshold).
+The model reads the project brief and writes the search queries, **deciding for itself how many are needed** (see §1.3 for the safety ceiling). Each query comes with a short label saying which part of the question it covers in the user's language so the list can be reviewed; queries themselves are always English. The queries are stored in the database (`origin = llm`) and can be exported to a plain text file (`litsearch queries` writes `queries.txt`, one query per line, angles as `#` comments) which the user can edit and re-run with `--queries-file`. The model's answer is cached by (input hash, prompt version, model), so asking again costs nothing. Each query also records its hit counts per source and its "effective hit count" (score at or above the threshold).
 
 Phase 0 findings that shape query generation:
 

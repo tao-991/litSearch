@@ -223,7 +223,8 @@ def write_markdown(
     lines = [
         f"# {summary.name}",
         "",
-        f"Status: **{summary.status}** · {summary.n_queries} queries · "
+        f"Status: **{summary.status}** · "
+        f"{summary.n_queries} {'query' if summary.n_queries == 1 else 'queries'} · "
         f"{summary.n_papers} distinct papers found",
         "",
         "These candidates are **not scored yet**: they are ordered by how many of the "

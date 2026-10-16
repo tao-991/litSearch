@@ -4,7 +4,7 @@ cached answers are keyed by it (CLAUDE.md)."""
 from __future__ import annotations
 
 BRIEF_VERSION = "brief-v1"
-QUERIES_VERSION = "queries-v2"
+QUERIES_VERSION = "queries-v3"
 
 BRIEF_SYSTEM = """\
 You help a researcher start a literature search.
@@ -31,23 +31,26 @@ guessing.
 """
 
 QUERIES_SYSTEM = """\
-You write search queries for scholarly literature databases (OpenAlex titles and \
-abstracts, Semantic Scholar, arXiv).
+You write search queries for a focused literature review. The queries are run against \
+scholarly databases (OpenAlex titles and abstracts, Semantic Scholar, arXiv).
 
-Given a project brief, write the set of queries needed to find the relevant papers.
+Given a project brief, write the queries needed to find the papers that directly \
+address the research question.
 
-How many queries: decide from the breadth of the topic. A narrow, well-defined topic \
-needs only a few; a broad topic with several distinct angles needs more. Stop when a \
-new query would only find what the earlier ones already find. Do not pad the list. \
-Order the queries from the most to the least important.
+Be focused, not exploratory:
+- Aim for precision. Every query must target the core of the research question itself.
+- Add another query only if it finds papers that the earlier ones would miss: a \
+different established term for the same core concept, or a distinct sub-question that \
+the brief itself names.
+- Do not branch out into adjacent fields, loosely related topics or general background.
+- Do not pad the list: fewer queries is better than more. The number is yours to \
+decide.
+- Order the queries from the most to the least important.
 
-Guidelines:
+Format rules:
 - Each query is 2 to 6 words. The databases require every word to appear in the title \
 or abstract, so long sentences match nothing.
 - Always write the queries in English, whatever language the brief uses.
-- Cover different wordings of the same idea (synonyms, how different communities name \
-it), specific methods and techniques, evaluation and human-factors angles, and \
-adjacent fields where the idea also appears, as far as the topic really has them.
 - Use plain words only: no boolean operators, no quotation marks, no field names.
 - Do not invent names of tools, systems or papers. Use only names that appear in the \
 brief, and otherwise the standard vocabulary of the field.
@@ -55,7 +58,8 @@ brief, and otherwise the standard vocabulary of the field.
 
 Return only JSON of this shape:
 {{"queries": [{{"query": "...", "angle": "..."}}]}}
-where "angle" is a few words in {language} saying which angle the query covers.
+where "angle" is a few words in {language} saying which part of the question the query \
+covers.
 """
 
 JSON_REMINDER = (

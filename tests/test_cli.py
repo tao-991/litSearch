@@ -643,8 +643,8 @@ def test_queries_ceiling_and_profile_options(
     twenty = queries_reply(*[f"query number {i}" for i in range(20)])
     use_llm(monkeypatch, FakeLLM([twenty]))
     quick = runner.invoke(app, ["queries", "--project", "project.md", "--out", "a.txt"])
-    assert "15 queries" in quick.output  # the quick profile's ceiling
-    assert "5 more queries than the ceiling" in quick.output
+    assert "5 queries" in quick.output  # the quick profile's ceiling
+    assert "15 more queries than the ceiling" in quick.output
     limited = runner.invoke(
         app,
         ["queries", "--project", "project.md", "--max-queries", "4", "--out", "b.txt"],
@@ -782,3 +782,18 @@ def test_queries_label_the_angles_in_the_configured_language(
     llm2 = use_llm(monkeypatch, FakeLLM([queries_reply("code review agents")]))
     runner.invoke(app, ["queries", "--project", "project.md", "--out", "b.txt"])
     assert "in Japanese saying" in llm2.calls[0]["system"]
+
+
+def test_singular_and_plural_of_queries_in_the_output(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    use_fakes(monkeypatch, **two_sources())
+    one = runner.invoke(app, [*BASE, "-q", "agents review", "--dry-run"])
+    assert "Plan: 1 query, sources" in one.output
+    two = runner.invoke(app, [*BASE, "-q", "agents review", "-q", "trust", "--dry-run"])
+    assert "Plan: 2 queries, sources" in two.output
+    llm_ready(monkeypatch)
+    (workdir / "project.md").write_text(BRIEF_TEXT, encoding="utf-8")
+    use_llm(monkeypatch, FakeLLM([queries_reply("code review agents")]))
+    made = runner.invoke(app, ["queries", "--project", "project.md"])
+    assert "1 query (model" in made.output

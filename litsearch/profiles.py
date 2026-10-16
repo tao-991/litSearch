@@ -22,13 +22,13 @@ PROFILES: dict[str, Profile] = {
     for p in (
         Profile(
             "quick",
-            max_queries=15,
+            max_queries=5,
             per_query=15,
             rounds=1,
             max_scored=150,
             max_minutes=10,
         ),
-        Profile("standard", 30, 30, 2, 500, 30),
-        Profile("deep", 60, 50, 3, 1500, 60),
+        Profile("standard", 10, 30, 2, 500, 30),
+        Profile("deep", 20, 50, 3, 1500, 60),
     )
 }
