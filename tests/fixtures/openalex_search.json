@@ -1,0 +1,2274 @@
+{
+ "meta": {
+  "count": 35985,
+  "db_response_time_ms": 110,
+  "page": 1,
+  "per_page": 20
+ },
+ "results": [
+  {
+   "id": "https://openalex.org/W7168370872",
+   "doi": "https://doi.org/10.1109/compsac69091.2026.00052",
+   "title": "Predicting Acceptance and Review Effort in Human and Agent Pull Requests",
+   "display_name": "Predicting Acceptance and Review Effort in Human and Agent Pull Requests",
+   "publication_year": 2026,
+   "publication_date": "2026-07-01",
+   "type": "conference-paper",
+   "authorships": [
+    {
+     "author": {
+      "id": "https://openalex.org/A5140817710",
+      "display_name": "Kartik Ghanshyambhai Pansuriya"
+     }
+    },
+    {
+     "author": {
+      "id": "https://openalex.org/A5140890929",
+      "display_name": "Ehsan Ghorbani"
+     }
+    }
+   ],
+   "primary_location": {
+    "id": "doi:10.1109/compsac69091.2026.00052",
+    "doi": "https://doi.org/10.1109/compsac69091.2026.00052",
+    "is_oa": false,
+    "landing_page_url": "https://doi.org/10.1109/compsac69091.2026.00052",
+    "pdf_url": null,
+    "source": {
+     "id": "https://openalex.org/S4363607883",
+     "display_name": "IEEE Annual Computers, Software, and Applications Conference (COMPSAC)",
+     "issn_l": null,
+     "issn": null,
+     "is_oa": false,
+     "is_in_doaj": false,
+     "is_core": false,
+     "listed_in": [],
+     "host_organization": null,
+     "host_organization_name": null,
+     "host_organization_lineage": [],
+     "host_organization_lineage_names": [],
+     "type": "conference"
+    },
+    "license": null,
+    "license_id": null,
+    "version": "publishedVersion",
+    "is_accepted": true,
+    "is_published": true,
+    "raw_source_name": "2026 IEEE 50th Annual Computers, Software, and Applications Conference (COMPSAC)",
+    "raw_type": "proceedings-article"
+   },
+   "locations": [
+    {
+     "id": "doi:10.1109/compsac69091.2026.00052",
+     "doi": "https://doi.org/10.1109/compsac69091.2026.00052",
+     "is_oa": false,
+     "landing_page_url": "https://doi.org/10.1109/compsac69091.2026.00052",
+     "pdf_url": null,
+     "source": {
+      "id": "https://openalex.org/S4363607883",
+      "display_name": "IEEE Annual Computers, Software, and Applications Conference (COMPSAC)",
+      "issn_l": null,
+      "issn": null,
+      "is_oa": false,
+      "is_in_doaj": false,
+      "is_core": false,
+      "listed_in": [],
+      "host_organization": null,
+      "host_organization_name": null,
+      "host_organization_lineage": [],
+      "host_organization_lineage_names": [],
+      "type": "conference"
+     },
+     "license": null,
+     "license_id": null,
+     "version": "publishedVersion",
+     "is_accepted": true,
+     "is_published": true,
+     "raw_source_name": "2026 IEEE 50th Annual Computers, Software, and Applications Conference (COMPSAC)",
+     "raw_type": "proceedings-article"
+    },
+    {
+     "id": "pmh:oai:arXiv.org:2607.12057",
+     "doi": null,
+     "is_oa": true,
+     "landing_page_url": "https://arxiv.org/abs/2607.12057",
+     "pdf_url": "https://arxiv.org/pdf/2607.12057",
+     "source": {
+      "id": "https://openalex.org/S4306400194",
+      "display_name": "arXiv (Cornell University)",
+      "issn_l": "2331-8422",
+      "issn": [
+       "2331-8422"
+      ],
+      "is_oa": true,
+      "is_in_doaj": false,
+      "is_core": false,
+      "listed_in": [],
+      "host_organization": "https://openalex.org/I205783295",
+      "host_organization_name": "Cornell University",
+      "host_organization_lineage": [
+       "https://openalex.org/I205783295"
+      ],
+      "host_organization_lineage_names": [],
+      "type": "repository"
+     },
+     "license": "public-domain",
+     "license_id": "https://openalex.org/licenses/public-domain",
+     "version": "submittedVersion",
+     "is_accepted": false,
+     "is_published": false,
+     "raw_source_name": null,
+     "raw_type": "text"
+    },
+    {
+     "id": "doi:10.48550/arxiv.2607.12057",
+     "doi": "https://doi.org/10.48550/arxiv.2607.12057",
+     "is_oa": true,
+     "landing_page_url": "https://doi.org/10.48550/arxiv.2607.12057",
+     "pdf_url": null,
+     "source": {
+      "id": "https://openalex.org/S4306400194",
+      "display_name": "arXiv (Cornell University)",
+      "issn_l": "2331-8422",
+      "issn": [
+       "2331-8422"
+      ],
+      "is_oa": true,
+      "is_in_doaj": false,
+      "is_core": false,
+      "listed_in": [],
+      "host_organization": "https://openalex.org/I205783295",
+      "host_organization_name": "Cornell University",
+      "host_organization_lineage": [
+       "https://openalex.org/I205783295"
+      ],
+      "host_organization_lineage_names": [],
+      "type": "repository"
+     },
+     "license": "public-domain",
+     "license_id": "https://openalex.org/licenses/public-domain",
+     "version": null,
+     "is_accepted": false,
+     "is_published": null,
+     "raw_source_name": null,
+     "raw_type": "Preprint"
+    }
+   ],
+   "best_oa_location": {
+    "id": "pmh:oai:arXiv.org:2607.12057",
+    "doi": null,
+    "is_oa": true,
+    "landing_page_url": "https://arxiv.org/abs/2607.12057",
+    "pdf_url": "https://arxiv.org/pdf/2607.12057",
+    "source": {
+     "id": "https://openalex.org/S4306400194",
+     "display_name": "arXiv (Cornell University)",
+     "issn_l": "2331-8422",
+     "issn": [
+      "2331-8422"
+     ],
+     "is_oa": true,
+     "is_in_doaj": false,
+     "is_core": false,
+     "listed_in": [],
+     "host_organization": "https://openalex.org/I205783295",
+     "host_organization_name": "Cornell University",
+     "host_organization_lineage": [
+      "https://openalex.org/I205783295"
+     ],
+     "host_organization_lineage_names": [],
+     "type": "repository"
+    },
+    "license": "public-domain",
+    "license_id": "https://openalex.org/licenses/public-domain",
+    "version": "submittedVersion",
+    "is_accepted": false,
+    "is_published": false,
+    "raw_source_name": null,
+    "raw_type": "text"
+   },
+   "open_access": {
+    "is_oa": true,
+    "oa_status": "green",
+    "oa_url": "https://arxiv.org/pdf/2607.12057",
+    "any_repository_has_fulltext": true
+   },
+   "cited_by_count": 0,
+   "abstract_inverted_index": {
+    "Pull": [
+     0
+    ],
+    "requests": [
+     1
+    ],
+    "(PRs)": [
+     2
+    ],
+    "are": [
+     3,
+     38,
+     75,
+     174
+    ],
+    "a": [
+     4,
+     32,
+     63,
+     83,
+     192
+    ],
+    "central": [
+     5
+    ],
+    "mechanism": [
+     6
+    ],
+    "for": [
+     7,
+     87
+    ],
+    "reviewing": [
+     8
+    ],
+    "and": [
+     9,
+     43,
+     89,
+     109,
+     127,
+     133,
+     158,
+     172,
+     187,
+     205
+    ],
+    "integrating": [
+     10
+    ],
+    "code": [
+     11,
+     25
+    ],
+    "changes": [
+     12,
+     26
+    ],
+    "in": [
+     13
+    ],
+    "modern": [
+     14
+    ],
+    "software": [
+     15
+    ],
+    "repositories.": [
+     16
+    ],
+    "As": [
+     17
+    ],
+    "AI": [
+     18
+    ],
+    "coding": [
+     19
+    ],
+    "agents": [
+     20
+    ],
+    "begin": [
+     21
+    ],
+    "to": [
+     22,
+     40,
+     97
+    ],
+    "submit": [
+     23
+    ],
+    "more": [
+     24,
+     168
+    ],
+    "alongside": [
+     27
+    ],
+    "human": [
+     28
+    ],
+    "developers,": [
+     29
+    ],
+    "maintainers": [
+     30
+    ],
+    "face": [
+     31
+    ],
+    "new": [
+     33
+    ],
+    "challenge:": [
+     34
+    ],
+    "deciding": [
+     35
+    ],
+    "which": [
+     36,
+     44
+    ],
+    "PRs": [
+     37
+    ],
+    "likely": [
+     39
+    ],
+    "be": [
+     41,
+     58,
+     210
+    ],
+    "accepted": [
+     42
+    ],
+    "ones": [
+     45
+    ],
+    "may": [
+     46
+    ],
+    "require": [
+     47
+    ],
+    "substantial": [
+     48
+    ],
+    "review": [
+     49,
+     189
+    ],
+    "effort.": [
+     50
+    ],
+    "This": [
+     51
+    ],
+    "paper": [
+     52
+    ],
+    "studies": [
+     53
+    ],
+    "whether": [
+     54
+    ],
+    "such": [
+     55
+    ],
+    "outcomes": [
+     56
+    ],
+    "can": [
+     57,
+     202
+    ],
+    "estimated": [
+     59
+    ],
+    "at": [
+     60
+    ],
+    "the": [
+     61,
+     78,
+     161
+    ],
+    "time": [
+     62
+    ],
+    "PR": [
+     64,
+     101,
+     200
+    ],
+    "is": [
+     65,
+     95,
+     143,
+     167
+    ],
+    "opened,": [
+     66
+    ],
+    "before": [
+     67
+    ],
+    "reviewer": [
+     68,
+     183,
+     206
+    ],
+    "discussion,": [
+     69
+    ],
+    "CI": [
+     70
+    ],
+    "feedback,": [
+     71
+    ],
+    "or": [
+     72
+    ],
+    "merge": [
+     73
+    ],
+    "decisions": [
+     74
+    ],
+    "available.": [
+     76
+    ],
+    "Using": [
+     77
+    ],
+    "AIDev": [
+     79
+    ],
+    "dataset,": [
+     80
+    ],
+    "we": [
+     81
+    ],
+    "construct": [
+     82
+    ],
+    "leakage-aware": [
+     84
+    ],
+    "prediction": [
+     85,
+     142,
+     166
+    ],
+    "pipeline": [
+     86
+    ],
+    "human-": [
+     88
+    ],
+    "agent-authored": [
+     90
+    ],
+    "PRs.": [
+     91
+    ],
+    "The": [
+     92
+    ],
+    "feature": [
+     93
+    ],
+    "set": [
+     94
+    ],
+    "limited": [
+     96
+    ],
+    "submission-time": [
+     98,
+     179
+    ],
+    "information,": [
+     99
+    ],
+    "including": [
+     100,
+     118
+    ],
+    "text": [
+     102
+    ],
+    "characteristics,": [
+     103
+    ],
+    "metadata,": [
+     104
+    ],
+    "repository": [
+     105
+    ],
+    "context,": [
+     106
+    ],
+    "temporal": [
+     107
+    ],
+    "signals,": [
+     108
+    ],
+    "lightweight": [
+     110
+    ],
+    "diff": [
+     111
+    ],
+    "statistics.": [
+     112
+    ],
+    "We": [
+     113
+    ],
+    "evaluate": [
+     114
+    ],
+    "classical": [
+     115
+    ],
+    "machine-learning": [
+     116
+    ],
+    "models,": [
+     117
+    ],
+    "Logistic": [
+     119
+    ],
+    "Regression,": [
+     120
+    ],
+    "Random": [
+     121
+    ],
+    "Forests,": [
+     122
+    ],
+    "Gradient": [
+     123
+    ],
+    "Boosting,": [
+     124
+    ],
+    "Extra": [
+     125
+    ],
+    "Trees,": [
+     126
+    ],
+    "MLPs,": [
+     128
+    ],
+    "across": [
+     129
+    ],
+    "pooled,": [
+     130
+    ],
+    "human-only,": [
+     131
+    ],
+    "agent-only,": [
+     132
+    ],
+    "balanced": [
+     134
+    ],
+    "contributor": [
+     135
+    ],
+    "views.": [
+     136
+    ],
+    "Our": [
+     137
+    ],
+    "results": [
+     138
+    ],
+    "show": [
+     139
+    ],
+    "that": [
+     140,
+     182,
+     198
+    ],
+    "acceptance": [
+     141
+    ],
+    "feasible": [
+     144
+    ],
+    "from": [
+     145
+    ],
+    "early": [
+     146,
+     199
+    ],
+    "signals:": [
+     147
+    ],
+    "tree-based": [
+     148
+    ],
+    "models": [
+     149,
+     201
+    ],
+    "achieve": [
+     150
+    ],
+    "F1": [
+     151
+    ],
+    "scores": [
+     152
+    ],
+    "above": [
+     153
+    ],
+    "0.95,": [
+     154
+    ],
+    "with": [
+     155
+    ],
+    "textual": [
+     156
+    ],
+    "clarity": [
+     157
+    ],
+    "metadata": [
+     159
+    ],
+    "among": [
+     160
+    ],
+    "most": [
+     162
+    ],
+    "influential": [
+     163
+    ],
+    "predictors.": [
+     164
+    ],
+    "Review-effort": [
+     165
+    ],
+    "difficult.": [
+     169
+    ],
+    "Comment": [
+     170
+    ],
+    "counts": [
+     171
+    ],
+    "time-to-merge": [
+     173
+    ],
+    "only": [
+     175
+    ],
+    "modestly": [
+     176
+    ],
+    "explained": [
+     177
+    ],
+    "by": [
+     178
+    ],
+    "features,": [
+     180
+    ],
+    "suggesting": [
+     181
+    ],
+    "availability,": [
+     184
+    ],
+    "project": [
+     185
+    ],
+    "workflow,": [
+     186
+    ],
+    "team-specific": [
+     188
+    ],
+    "practices": [
+     190
+    ],
+    "play": [
+     191
+    ],
+    "major": [
+     193
+    ],
+    "role.": [
+     194
+    ],
+    "These": [
+     195
+    ],
+    "findings": [
+     196
+    ],
+    "indicate": [
+     197
+    ],
+    "support": [
+     203
+    ],
+    "triage": [
+     204
+    ],
+    "prioritization,": [
+     207
+    ],
+    "but": [
+     208
+    ],
+    "should": [
+     209
+    ],
+    "used": [
+     211
+    ],
+    "as": [
+     212
+    ],
+    "advisory": [
+     213
+    ],
+    "tools": [
+     214
+    ],
+    "rather": [
+     215
+    ],
+    "than": [
+     216
+    ],
+    "automated": [
+     217
+    ],
+    "decision-makers.": [
+     218
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W7128555018",
+   "doi": null,
+   "title": "Comparing AI Coding Agents: A Task-Stratified Analysis of Pull Request Acceptance",
+   "display_name": "Comparing AI Coding Agents: A Task-Stratified Analysis of Pull Request Acceptance",
+   "publication_year": 2026,
+   "publication_date": "2026-02-09",
+   "type": "preprint",
+   "authorships": [
+    {
+     "author": {
+      "id": "https://openalex.org/A5037980024",
+      "display_name": "Giovanni Pinna"
+     }
+    },
+    {
+     "author": {
+      "id": "https://openalex.org/A5122497198",
+      "display_name": "Jingzhi Gong"
+     }
+    }
+   ],
+   "primary_location": {
+    "id": "pmh:oai:arXiv.org:2602.08915",
+    "doi": null,
+    "is_oa": true,
+    "landing_page_url": "https://arxiv.org/abs/2602.08915",
+    "pdf_url": "https://arxiv.org/pdf/2602.08915",
+    "source": {
+     "id": "https://openalex.org/S4306400194",
+     "display_name": "arXiv (Cornell University)",
+     "issn_l": "2331-8422",
+     "issn": [
+      "2331-8422"
+     ],
+     "is_oa": true,
+     "is_in_doaj": false,
+     "is_core": false,
+     "listed_in": [],
+     "host_organization": "https://openalex.org/I205783295",
+     "host_organization_name": "Cornell University",
+     "host_organization_lineage": [
+      "https://openalex.org/I205783295"
+     ],
+     "host_organization_lineage_names": [],
+     "type": "repository"
+    },
+    "license": "cc-by",
+    "license_id": "https://openalex.org/licenses/cc-by",
+    "version": "submittedVersion",
+    "is_accepted": false,
+    "is_published": false,
+    "raw_source_name": null,
+    "raw_type": "text"
+   },
+   "locations": [
+    {
+     "id": "pmh:oai:arXiv.org:2602.08915",
+     "doi": null,
+     "is_oa": true,
+     "landing_page_url": "https://arxiv.org/abs/2602.08915",
+     "pdf_url": "https://arxiv.org/pdf/2602.08915",
+     "source": {
+      "id": "https://openalex.org/S4306400194",
+      "display_name": "arXiv (Cornell University)",
+      "issn_l": "2331-8422",
+      "issn": [
+       "2331-8422"
+      ],
+      "is_oa": true,
+      "is_in_doaj": false,
+      "is_core": false,
+      "listed_in": [],
+      "host_organization": "https://openalex.org/I205783295",
+      "host_organization_name": "Cornell University",
+      "host_organization_lineage": [
+       "https://openalex.org/I205783295"
+      ],
+      "host_organization_lineage_names": [],
+      "type": "repository"
+     },
+     "license": "cc-by",
+     "license_id": "https://openalex.org/licenses/cc-by",
+     "version": "submittedVersion",
+     "is_accepted": false,
+     "is_published": false,
+     "raw_source_name": null,
+     "raw_type": "text"
+    }
+   ],
+   "best_oa_location": {
+    "id": "pmh:oai:arXiv.org:2602.08915",
+    "doi": null,
+    "is_oa": true,
+    "landing_page_url": "https://arxiv.org/abs/2602.08915",
+    "pdf_url": "https://arxiv.org/pdf/2602.08915",
+    "source": {
+     "id": "https://openalex.org/S4306400194",
+     "display_name": "arXiv (Cornell University)",
+     "issn_l": "2331-8422",
+     "issn": [
+      "2331-8422"
+     ],
+     "is_oa": true,
+     "is_in_doaj": false,
+     "is_core": false,
+     "listed_in": [],
+     "host_organization": "https://openalex.org/I205783295",
+     "host_organization_name": "Cornell University",
+     "host_organization_lineage": [
+      "https://openalex.org/I205783295"
+     ],
+     "host_organization_lineage_names": [],
+     "type": "repository"
+    },
+    "license": "cc-by",
+    "license_id": "https://openalex.org/licenses/cc-by",
+    "version": "submittedVersion",
+    "is_accepted": false,
+    "is_published": false,
+    "raw_source_name": null,
+    "raw_type": "text"
+   },
+   "open_access": {
+    "is_oa": true,
+    "oa_status": "green",
+    "oa_url": "https://arxiv.org/pdf/2602.08915",
+    "any_repository_has_fulltext": true
+   },
+   "cited_by_count": 0,
+   "abstract_inverted_index": {
+    "The": [
+     0
+    ],
+    "rapid": [
+     1
+    ],
+    "adoption": [
+     2
+    ],
+    "of": [
+     3,
+     15
+    ],
+    "AI-powered": [
+     4
+    ],
+    "coding": [
+     5
+    ],
+    "assistants": [
+     6
+    ],
+    "is": [
+     7,
+     92
+    ],
+    "transforming": [
+     8
+    ],
+    "software": [
+     9
+    ],
+    "development": [
+     10
+    ],
+    "practices,": [
+     11
+    ],
+    "yet": [
+     12
+    ],
+    "systematic": [
+     13
+    ],
+    "comparisons": [
+     14
+    ],
+    "their": [
+     16
+    ],
+    "effectiveness": [
+     17
+    ],
+    "across": [
+     18,
+     131,
+     158
+    ],
+    "different": [
+     19
+    ],
+    "task": [
+     20,
+     90,
+     134,
+     150,
+     160
+    ],
+    "types": [
+     21
+    ],
+    "and": [
+     22,
+     43,
+     168
+    ],
+    "over": [
+     23,
+     75,
+     145
+    ],
+    "time": [
+     24
+    ],
+    "remain": [
+     25,
+     81
+    ],
+    "limited.": [
+     26
+    ],
+    "This": [
+     27
+    ],
+    "paper": [
+     28
+    ],
+    "presents": [
+     29
+    ],
+    "an": [
+     30
+    ],
+    "empirical": [
+     31
+    ],
+    "study": [
+     32
+    ],
+    "comparing": [
+     33
+    ],
+    "five": [
+     34
+    ],
+    "popular": [
+     35
+    ],
+    "agents": [
+     36,
+     80,
+     147
+    ],
+    "(OpenAI": [
+     37
+    ],
+    "Codex,": [
+     38
+    ],
+    "GitHub": [
+     39
+    ],
+    "Copilot,": [
+     40
+    ],
+    "Devin,": [
+     41
+    ],
+    "Cursor,": [
+     42
+    ],
+    "Claude": [
+     44,
+     162
+    ],
+    "Code),": [
+     45
+    ],
+    "analyzing": [
+     46
+    ],
+    "7,156": [
+     47
+    ],
+    "pull": [
+     48
+    ],
+    "requests": [
+     49
+    ],
+    "(PRs)": [
+     50
+    ],
+    "from": [
+     51
+    ],
+    "the": [
+     52,
+     64,
+     88
+    ],
+    "AIDev": [
+     53
+    ],
+    "dataset.": [
+     54
+    ],
+    "Temporal": [
+     55
+    ],
+    "trend": [
+     56,
+     68
+    ],
+    "analysis": [
+     57,
+     85
+    ],
+    "reveals": [
+     58
+    ],
+    "heterogeneous": [
+     59
+    ],
+    "evolution": [
+     60
+    ],
+    "patterns:": [
+     61
+    ],
+    "Devin": [
+     62
+    ],
+    "exhibits": [
+     63
+    ],
+    "only": [
+     65
+    ],
+    "consistent": [
+     66
+    ],
+    "positive": [
+     67
+    ],
+    "in": [
+     69,
+     148,
+     165,
+     174
+    ],
+    "acceptance": [
+     70,
+     97,
+     103,
+     129
+    ],
+    "rate": [
+     71
+    ],
+    "(+0.77%": [
+     72
+    ],
+    "per": [
+     73
+    ],
+    "week": [
+     74
+    ],
+    "32": [
+     76
+    ],
+    "weeks),": [
+     77
+    ],
+    "whereas": [
+     78
+    ],
+    "other": [
+     79,
+     146
+    ],
+    "largely": [
+     82
+    ],
+    "stable.": [
+     83
+    ],
+    "Our": [
+     84
+    ],
+    "suggests": [
+     86
+    ],
+    "that": [
+     87,
+     116
+    ],
+    "PR": [
+     89
+    ],
+    "type": [
+     91
+    ],
+    "a": [
+     93,
+     111
+    ],
+    "dominant": [
+     94
+    ],
+    "factor": [
+     95
+    ],
+    "influencing": [
+     96
+    ],
+    "rates:": [
+     98
+    ],
+    "documentation": [
+     99,
+     166
+    ],
+    "tasks": [
+     100,
+     176
+    ],
+    "achieve": [
+     101
+    ],
+    "82.1%": [
+     102
+    ],
+    "compared": [
+     104
+    ],
+    "to": [
+     105
+    ],
+    "66.1%": [
+     106
+    ],
+    "for": [
+     107,
+     121
+    ],
+    "new": [
+     108
+    ],
+    "features": [
+     109,
+     169
+    ],
+    "-": [
+     110
+    ],
+    "16": [
+     112
+    ],
+    "percentage": [
+     113
+    ],
+    "point": [
+     114
+    ],
+    "gap": [
+     115
+    ],
+    "exceeds": [
+     117
+    ],
+    "typical": [
+     118
+    ],
+    "inter-agent": [
+     119
+    ],
+    "variance": [
+     120
+    ],
+    "most": [
+     122
+    ],
+    "tasks.": [
+     123
+    ],
+    "OpenAI": [
+     124
+    ],
+    "Codex": [
+     125
+    ],
+    "achieves": [
+     126
+    ],
+    "consistently": [
+     127
+    ],
+    "high": [
+     128
+    ],
+    "rates": [
+     130
+    ],
+    "all": [
+     132,
+     159
+    ],
+    "nine": [
+     133
+    ],
+    "categories": [
+     135
+    ],
+    "(59.6%-88.6%),": [
+     136
+    ],
+    "with": [
+     137
+    ],
+    "stratified": [
+     138
+    ],
+    "Chi-square": [
+     139
+    ],
+    "tests": [
+     140
+    ],
+    "confirming": [
+     141
+    ],
+    "statistically": [
+     142
+    ],
+    "significant": [
+     143
+    ],
+    "advantages": [
+     144
+    ],
+    "several": [
+     149
+    ],
+    "categories.": [
+     151
+    ],
+    "However,": [
+     152
+    ],
+    "no": [
+     153
+    ],
+    "single": [
+     154
+    ],
+    "agent": [
+     155
+    ],
+    "performs": [
+     156
+    ],
+    "best": [
+     157
+    ],
+    "types:": [
+     161
+    ],
+    "Code": [
+     163
+    ],
+    "leads": [
+     164
+    ],
+    "(92.3%)": [
+     167
+    ],
+    "(72.6%),": [
+     170
+    ],
+    "while": [
+     171
+    ],
+    "Cursor": [
+     172
+    ],
+    "excels": [
+     173
+    ],
+    "fix": [
+     175
+    ],
+    "(80.4%).": [
+     177
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W7204073188",
+   "doi": "https://doi.org/10.48550/arxiv.2608.21311",
+   "title": "AI-to-AI Code Reviews of GitHub Pull Requests",
+   "display_name": "AI-to-AI Code Reviews of GitHub Pull Requests",
+   "publication_year": 2026,
+   "publication_date": "2026-08-21",
+   "type": "preprint",
+   "authorships": [
+    {
+     "author": {
+      "id": "https://openalex.org/A5130030164",
+      "display_name": "Niruthiha Selvanayagam"
+     }
+    },
+    {
+     "author": {
+      "id": "https://openalex.org/A5054956944",
+      "display_name": "Taher A. Ghaleb"
+     }
+    }
+   ],
+   "primary_location": {
+    "id": "pmh:oai:arXiv.org:2608.21311",
+    "doi": null,
+    "is_oa": true,
+    "landing_page_url": "https://arxiv.org/abs/2608.21311",
+    "pdf_url": "https://arxiv.org/pdf/2608.21311",
+    "source": {
+     "id": "https://openalex.org/S4306400194",
+     "display_name": "arXiv (Cornell University)",
+     "issn_l": "2331-8422",
+     "issn": [
+      "2331-8422"
+     ],
+     "is_oa": true,
+     "is_in_doaj": false,
+     "is_core": false,
+     "listed_in": [],
+     "host_organization": "https://openalex.org/I205783295",
+     "host_organization_name": "Cornell University",
+     "host_organization_lineage": [
+      "https://openalex.org/I205783295"
+     ],
+     "host_organization_lineage_names": [],
+     "type": "repository"
+    },
+    "license": "cc-by",
+    "license_id": "https://openalex.org/licenses/cc-by",
+    "version": "submittedVersion",
+    "is_accepted": false,
+    "is_published": false,
+    "raw_source_name": null,
+    "raw_type": "text"
+   },
+   "locations": [
+    {
+     "id": "pmh:oai:arXiv.org:2608.21311",
+     "doi": null,
+     "is_oa": true,
+     "landing_page_url": "https://arxiv.org/abs/2608.21311",
+     "pdf_url": "https://arxiv.org/pdf/2608.21311",
+     "source": {
+      "id": "https://openalex.org/S4306400194",
+      "display_name": "arXiv (Cornell University)",
+      "issn_l": "2331-8422",
+      "issn": [
+       "2331-8422"
+      ],
+      "is_oa": true,
+      "is_in_doaj": false,
+      "is_core": false,
+      "listed_in": [],
+      "host_organization": "https://openalex.org/I205783295",
+      "host_organization_name": "Cornell University",
+      "host_organization_lineage": [
+       "https://openalex.org/I205783295"
+      ],
+      "host_organization_lineage_names": [],
+      "type": "repository"
+     },
+     "license": "cc-by",
+     "license_id": "https://openalex.org/licenses/cc-by",
+     "version": "submittedVersion",
+     "is_accepted": false,
+     "is_published": false,
+     "raw_source_name": null,
+     "raw_type": "text"
+    },
+    {
+     "id": "doi:10.48550/arxiv.2608.21311",
+     "doi": "https://doi.org/10.48550/arxiv.2608.21311",
+     "is_oa": true,
+     "landing_page_url": "https://doi.org/10.48550/arxiv.2608.21311",
+     "pdf_url": null,
+     "source": {
+      "id": "https://openalex.org/S4306400194",
+      "display_name": "arXiv (Cornell University)",
+      "issn_l": "2331-8422",
+      "issn": [
+       "2331-8422"
+      ],
+      "is_oa": true,
+      "is_in_doaj": false,
+      "is_core": false,
+      "listed_in": [],
+      "host_organization": "https://openalex.org/I205783295",
+      "host_organization_name": "Cornell University",
+      "host_organization_lineage": [
+       "https://openalex.org/I205783295"
+      ],
+      "host_organization_lineage_names": [],
+      "type": "repository"
+     },
+     "license": "cc-by",
+     "license_id": "https://openalex.org/licenses/cc-by",
+     "version": null,
+     "is_accepted": false,
+     "is_published": null,
+     "raw_source_name": null,
+     "raw_type": "Preprint"
+    }
+   ],
+   "best_oa_location": {
+    "id": "pmh:oai:arXiv.org:2608.21311",
+    "doi": null,
+    "is_oa": true,
+    "landing_page_url": "https://arxiv.org/abs/2608.21311",
+    "pdf_url": "https://arxiv.org/pdf/2608.21311",
+    "source": {
+     "id": "https://openalex.org/S4306400194",
+     "display_name": "arXiv (Cornell University)",
+     "issn_l": "2331-8422",
+     "issn": [
+      "2331-8422"
+     ],
+     "is_oa": true,
+     "is_in_doaj": false,
+     "is_core": false,
+     "listed_in": [],
+     "host_organization": "https://openalex.org/I205783295",
+     "host_organization_name": "Cornell University",
+     "host_organization_lineage": [
+      "https://openalex.org/I205783295"
+     ],
+     "host_organization_lineage_names": [],
+     "type": "repository"
+    },
+    "license": "cc-by",
+    "license_id": "https://openalex.org/licenses/cc-by",
+    "version": "submittedVersion",
+    "is_accepted": false,
+    "is_published": false,
+    "raw_source_name": null,
+    "raw_type": "text"
+   },
+   "open_access": {
+    "is_oa": true,
+    "oa_status": "green",
+    "oa_url": "https://arxiv.org/pdf/2608.21311",
+    "any_repository_has_fulltext": true
+   },
+   "cited_by_count": 0,
+   "abstract_inverted_index": {
+    "AI": [
+     0,
+     19,
+     27,
+     39
+    ],
+    "coding": [
+     1,
+     40
+    ],
+    "agents": [
+     2,
+     21
+    ],
+    "are": [
+     3
+    ],
+    "increasingly": [
+     4
+    ],
+    "integrated": [
+     5
+    ],
+    "into": [
+     6
+    ],
+    "software": [
+     7
+    ],
+    "development": [
+     8
+    ],
+    "workflows,": [
+     9
+    ],
+    "operating": [
+     10
+    ],
+    "on": [
+     11,
+     147,
+     157
+    ],
+    "both": [
+     12
+    ],
+    "sides": [
+     13
+    ],
+    "of": [
+     14,
+     53,
+     70,
+     110,
+     129,
+     144,
+     166,
+     175,
+     247
+    ],
+    "the": [
+     15,
+     167,
+     171,
+     187,
+     198,
+     203,
+     212
+    ],
+    "pull-request": [
+     16
+    ],
+    "(PR)": [
+     17
+    ],
+    "process:": [
+     18
+    ],
+    "authoring": [
+     20
+    ],
+    "create": [
+     22
+    ],
+    "or": [
+     23,
+     195
+    ],
+    "modify": [
+     24
+    ],
+    "PRs,": [
+     25,
+     159
+    ],
+    "while": [
+     26
+    ],
+    "reviewers": [
+     28
+    ],
+    "evaluate": [
+     29
+    ],
+    "them.": [
+     30
+    ],
+    "This": [
+     31
+    ],
+    "creates": [
+     32
+    ],
+    "a": [
+     33,
+     43,
+     50,
+     67,
+     245
+    ],
+    "closed": [
+     34
+    ],
+    "loop": [
+     35
+    ],
+    "in": [
+     36,
+     107,
+     117,
+     186,
+     202
+    ],
+    "which": [
+     37
+    ],
+    "one": [
+     38,
+     85
+    ],
+    "agent": [
+     41,
+     249
+    ],
+    "reviews": [
+     42
+    ],
+    "contribution": [
+     44
+    ],
+    "attributed": [
+     45
+    ],
+    "to": [
+     46,
+     133
+    ],
+    "another.": [
+     47
+    ],
+    "We": [
+     48
+    ],
+    "construct": [
+     49
+    ],
+    "large-scale": [
+     51
+    ],
+    "dataset": [
+     52,
+     69,
+     75
+    ],
+    "AI-to-AI": [
+     54,
+     104,
+     239
+    ],
+    "code": [
+     55
+    ],
+    "review": [
+     56,
+     63,
+     93,
+     105,
+     240,
+     252
+    ],
+    "by": [
+     57,
+     124
+    ],
+    "linking": [
+     58
+    ],
+    "AI-attributed": [
+     59,
+     62,
+     79,
+     86
+    ],
+    "PRs": [
+     60,
+     80,
+     100,
+     113,
+     150,
+     168
+    ],
+    "with": [
+     61,
+     155,
+     208,
+     251
+    ],
+    "events": [
+     64
+    ],
+    "from": [
+     65,
+     131
+    ],
+    "CodAGE,": [
+     66
+    ],
+    "public": [
+     68
+    ],
+    "coding-agent-generated": [
+     71
+    ],
+    "GitHub": [
+     72
+    ],
+    "events.": [
+     73
+    ],
+    "Our": [
+     74
+    ],
+    "contains": [
+     76
+    ],
+    "248,641": [
+     77
+    ],
+    "unique": [
+     78
+    ],
+    "that": [
+     81
+    ],
+    "received": [
+     82,
+     91,
+     96,
+     101
+    ],
+    "at": [
+     83
+    ],
+    "least": [
+     84
+    ],
+    "review.": [
+     87
+    ],
+    "Of": [
+     88
+    ],
+    "these,": [
+     89
+    ],
+    "45,269": [
+     90
+    ],
+    "cross-product": [
+     92,
+     220
+    ],
+    "and": [
+     94,
+     120,
+     197,
+     222,
+     231,
+     258
+    ],
+    "208,145": [
+     95
+    ],
+    "same-product": [
+     97,
+     188,
+     226
+    ],
+    "review;": [
+     98
+    ],
+    "4,773": [
+     99
+    ],
+    "both.": [
+     102
+    ],
+    "Cross-product": [
+     103
+    ],
+    "occurred": [
+     106
+    ],
+    "approximately": [
+     108
+    ],
+    "1.6%": [
+     109
+    ],
+    "identified": [
+     111,
+     248
+    ],
+    "agent-authored": [
+     112
+    ],
+    "but": [
+     114,
+     243
+    ],
+    "was": [
+     115,
+     200,
+     216
+    ],
+    "substantial": [
+     116
+    ],
+    "absolute": [
+     118
+    ],
+    "terms,": [
+     119
+    ],
+    "its": [
+     121,
+     145
+    ],
+    "volume": [
+     122
+    ],
+    "increased": [
+     123
+    ],
+    "more": [
+     125
+    ],
+    "than": [
+     126,
+     170
+    ],
+    "two": [
+     127
+    ],
+    "orders": [
+     128
+    ],
+    "magnitude": [
+     130
+    ],
+    "2025-Q1": [
+     132
+    ],
+    "2025-Q3.": [
+     134
+    ],
+    "Reviewer": [
+     135
+    ],
+    "output": [
+     136,
+     253
+    ],
+    "varied": [
+     137
+    ],
+    "across": [
+     138,
+     255
+    ],
+    "author-reviewer": [
+     139
+    ],
+    "configurations.": [
+     140,
+     260
+    ],
+    "CodeRabbit": [
+     141
+    ],
+    "labeled": [
+     142
+    ],
+    "35.0%": [
+     143
+    ],
+    "comments": [
+     146,
+     180
+    ],
+    "Claude": [
+     148
+    ],
+    "Code-authored": [
+     149
+    ],
+    "as": [
+     151
+    ],
+    "refactor": [
+     152
+    ],
+    "comments,": [
+     153
+    ],
+    "compared": [
+     154
+    ],
+    "10.5%": [
+     156
+    ],
+    "Copilot-authored": [
+     158
+    ],
+    "although": [
+     160,
+     190
+    ],
+    "this": [
+     161,
+     235
+    ],
+    "difference": [
+     162,
+     199
+    ],
+    "may": [
+     163
+    ],
+    "reflect": [
+     164
+    ],
+    "characteristics": [
+     165
+    ],
+    "rather": [
+     169
+    ],
+    "reviewer.": [
+     172
+    ],
+    "For": [
+     173
+    ],
+    "three": [
+     174
+    ],
+    "four": [
+     176
+    ],
+    "dual-role": [
+     177
+    ],
+    "reviewers,": [
+     178
+    ],
+    "mean": [
+     179
+    ],
+    "per": [
+     181
+    ],
+    "PR": [
+     182
+    ],
+    "were": [
+     183,
+     193
+    ],
+    "58-65%": [
+     184
+    ],
+    "higher": [
+     185
+    ],
+    "group,": [
+     189
+    ],
+    "effect": [
+     191
+    ],
+    "sizes": [
+     192
+    ],
+    "small": [
+     194
+    ],
+    "negligible": [
+     196
+    ],
+    "concentrated": [
+     201
+    ],
+    "upper": [
+     204
+    ],
+    "tail.": [
+     205
+    ],
+    "Among": [
+     206
+    ],
+    "pairs": [
+     207,
+     221
+    ],
+    "complete,": [
+     209
+    ],
+    "nonnegative": [
+     210
+    ],
+    "timestamps,": [
+     211
+    ],
+    "observed": [
+     213
+    ],
+    "median": [
+     214
+    ],
+    "latency": [
+     215
+    ],
+    "1.2": [
+     217
+    ],
+    "minutes": [
+     218,
+     224
+    ],
+    "for": [
+     219,
+     225
+    ],
+    "4.7": [
+     223
+    ],
+    "pairs;": [
+     227
+    ],
+    "differential": [
+     228
+    ],
+    "timestamp": [
+     229
+    ],
+    "availability": [
+     230
+    ],
+    "reviewer": [
+     232
+    ],
+    "composition": [
+     233
+    ],
+    "limit": [
+     234
+    ],
+    "comparison.": [
+     236
+    ],
+    "Overall,": [
+     237
+    ],
+    "closed-loop": [
+     238
+    ],
+    "is": [
+     241
+    ],
+    "increasing": [
+     242
+    ],
+    "remains": [
+     244
+    ],
+    "minority": [
+     246
+    ],
+    "activity,": [
+     250
+    ],
+    "varying": [
+     254
+    ],
+    "authoring-agent": [
+     256
+    ],
+    "groups": [
+     257
+    ],
+    "product": [
+     259
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W7214402852",
+   "doi": "https://doi.org/10.1016/j.infsof.2026.108333",
+   "title": "Security in the age of AI teammates: An empirical study of agentic pull requests on GitHub",
+   "display_name": "Security in the age of AI teammates: An empirical study of agentic pull requests on GitHub",
+   "publication_year": 2026,
+   "publication_date": "2026-09-01",
+   "type": "article",
+   "authorships": [
+    {
+     "author": {
+      "id": "https://openalex.org/A5083926745",
+      "display_name": "Mohammed Latif Siddiq"
+     }
+    },
+    {
+     "author": {
+      "id": "https://openalex.org/A5121823423",
+      "display_name": "Xinye Zhao"
+     }
+    }
+   ],
+   "primary_location": {
+    "id": "doi:10.1016/j.infsof.2026.108333",
+    "doi": "https://doi.org/10.1016/j.infsof.2026.108333",
+    "is_oa": false,
+    "landing_page_url": "https://doi.org/10.1016/j.infsof.2026.108333",
+    "pdf_url": null,
+    "source": {
+     "id": "https://openalex.org/S205010575",
+     "display_name": "Information and Software Technology",
+     "issn_l": "0950-5849",
+     "issn": [
+      "0950-5849",
+      "1873-6025"
+     ],
+     "is_oa": false,
+     "is_in_doaj": false,
+     "is_core": true,
+     "listed_in": [
+      "ccf-b",
+      "cwts-core",
+      "dongbi-c",
+      "jufo-3",
+      "norway-2",
+      "poland-140",
+      "russia-white-list-1",
+      "vabb-shw"
+     ],
+     "host_organization": "https://openalex.org/P4310320990",
+     "host_organization_name": "Elsevier BV",
+     "host_organization_lineage": [
+      "https://openalex.org/P4310320990"
+     ],
+     "host_organization_lineage_names": [
+      "Elsevier BV"
+     ],
+     "type": "journal"
+    },
+    "license": null,
+    "license_id": null,
+    "version": "publishedVersion",
+    "is_accepted": true,
+    "is_published": true,
+    "raw_source_name": "Information and Software Technology",
+    "raw_type": "journal-article"
+   },
+   "locations": [
+    {
+     "id": "doi:10.1016/j.infsof.2026.108333",
+     "doi": "https://doi.org/10.1016/j.infsof.2026.108333",
+     "is_oa": false,
+     "landing_page_url": "https://doi.org/10.1016/j.infsof.2026.108333",
+     "pdf_url": null,
+     "source": {
+      "id": "https://openalex.org/S205010575",
+      "display_name": "Information and Software Technology",
+      "issn_l": "0950-5849",
+      "issn": [
+       "0950-5849",
+       "1873-6025"
+      ],
+      "is_oa": false,
+      "is_in_doaj": false,
+      "is_core": true,
+      "listed_in": [
+       "ccf-b",
+       "cwts-core",
+       "dongbi-c",
+       "jufo-3",
+       "norway-2",
+       "poland-140",
+       "russia-white-list-1",
+       "vabb-shw"
+      ],
+      "host_organization": "https://openalex.org/P4310320990",
+      "host_organization_name": "Elsevier BV",
+      "host_organization_lineage": [
+       "https://openalex.org/P4310320990"
+      ],
+      "host_organization_lineage_names": [
+       "Elsevier BV"
+      ],
+      "type": "journal"
+     },
+     "license": null,
+     "license_id": null,
+     "version": "publishedVersion",
+     "is_accepted": true,
+     "is_published": true,
+     "raw_source_name": "Information and Software Technology",
+     "raw_type": "journal-article"
+    }
+   ],
+   "best_oa_location": null,
+   "open_access": {
+    "is_oa": false,
+    "oa_status": "closed",
+    "oa_url": null,
+    "any_repository_has_fulltext": false
+   },
+   "cited_by_count": 0,
+   "abstract_inverted_index": null
+  }
+ ]
+}

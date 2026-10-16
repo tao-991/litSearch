@@ -1,0 +1,857 @@
+{
+ "meta": {
+  "count": 2,
+  "page": 1,
+  "per_page": 20
+ },
+ "results": [
+  {
+   "id": "https://openalex.org/W7171930223",
+   "doi": "https://doi.org/10.1145/3793302.3793571",
+   "title": "Why and When Agentic Pull Requests are (not) Accepted: An Exploratory Study",
+   "display_name": "Why and When Agentic Pull Requests are (not) Accepted: An Exploratory Study",
+   "publication_year": 2026,
+   "publication_date": "2026-04-13",
+   "type": "conference-paper",
+   "authorships": [
+    {
+     "author": {
+      "id": "https://openalex.org/A5123848552",
+      "display_name": "Marius Christoph Strauss"
+     }
+    },
+    {
+     "author": {
+      "id": "https://openalex.org/A5017178235",
+      "display_name": "Sandro Schulze"
+     }
+    }
+   ],
+   "primary_location": {
+    "id": "doi:10.1145/3793302.3793571",
+    "doi": "https://doi.org/10.1145/3793302.3793571",
+    "is_oa": true,
+    "landing_page_url": "https://doi.org/10.1145/3793302.3793571",
+    "pdf_url": null,
+    "source": {
+     "id": "https://openalex.org/S7407088599",
+     "display_name": "International Conference on Mining Software Repositories (MSR)",
+     "issn_l": null,
+     "issn": null,
+     "is_oa": false,
+     "is_in_doaj": false,
+     "is_core": false,
+     "listed_in": [],
+     "host_organization": null,
+     "host_organization_name": null,
+     "host_organization_lineage": [],
+     "host_organization_lineage_names": [],
+     "type": "conference"
+    },
+    "license": "cc-by",
+    "license_id": "https://openalex.org/licenses/cc-by",
+    "version": "publishedVersion",
+    "is_accepted": true,
+    "is_published": true,
+    "raw_source_name": "Proceedings of the 23rd International Conference on Mining Software Repositories",
+    "raw_type": "proceedings-article"
+   },
+   "locations": [
+    {
+     "id": "doi:10.1145/3793302.3793571",
+     "doi": "https://doi.org/10.1145/3793302.3793571",
+     "is_oa": true,
+     "landing_page_url": "https://doi.org/10.1145/3793302.3793571",
+     "pdf_url": null,
+     "source": {
+      "id": "https://openalex.org/S7407088599",
+      "display_name": "International Conference on Mining Software Repositories (MSR)",
+      "issn_l": null,
+      "issn": null,
+      "is_oa": false,
+      "is_in_doaj": false,
+      "is_core": false,
+      "listed_in": [],
+      "host_organization": null,
+      "host_organization_name": null,
+      "host_organization_lineage": [],
+      "host_organization_lineage_names": [],
+      "type": "conference"
+     },
+     "license": "cc-by",
+     "license_id": "https://openalex.org/licenses/cc-by",
+     "version": "publishedVersion",
+     "is_accepted": true,
+     "is_published": true,
+     "raw_source_name": "Proceedings of the 23rd International Conference on Mining Software Repositories",
+     "raw_type": "proceedings-article"
+    }
+   ],
+   "best_oa_location": {
+    "id": "doi:10.1145/3793302.3793571",
+    "doi": "https://doi.org/10.1145/3793302.3793571",
+    "is_oa": true,
+    "landing_page_url": "https://doi.org/10.1145/3793302.3793571",
+    "pdf_url": null,
+    "source": {
+     "id": "https://openalex.org/S7407088599",
+     "display_name": "International Conference on Mining Software Repositories (MSR)",
+     "issn_l": null,
+     "issn": null,
+     "is_oa": false,
+     "is_in_doaj": false,
+     "is_core": false,
+     "listed_in": [],
+     "host_organization": null,
+     "host_organization_name": null,
+     "host_organization_lineage": [],
+     "host_organization_lineage_names": [],
+     "type": "conference"
+    },
+    "license": "cc-by",
+    "license_id": "https://openalex.org/licenses/cc-by",
+    "version": "publishedVersion",
+    "is_accepted": true,
+    "is_published": true,
+    "raw_source_name": "Proceedings of the 23rd International Conference on Mining Software Repositories",
+    "raw_type": "proceedings-article"
+   },
+   "open_access": {
+    "is_oa": true,
+    "oa_status": "hybrid",
+    "oa_url": "https://doi.org/10.1145/3793302.3793571",
+    "any_repository_has_fulltext": false
+   },
+   "cited_by_count": 0,
+   "abstract_inverted_index": {
+    "Recently,": [
+     0
+    ],
+    "Coding": [
+     1,
+     62
+    ],
+    "Agents": [
+     2
+    ],
+    "gained": [
+     3
+    ],
+    "considerable": [
+     4,
+     31
+    ],
+    "impact": [
+     5
+    ],
+    "on": [
+     6,
+     12
+    ],
+    "software": [
+     7
+    ],
+    "engineering": [
+     8
+    ],
+    "processes": [
+     9
+    ],
+    "such": [
+     10
+    ],
+    "as": [
+     11
+    ],
+    "reviews,": [
+     13
+    ],
+    "tests,": [
+     14
+    ],
+    "documentation,": [
+     15
+    ],
+    "code": [
+     16
+    ],
+    "generation,": [
+     17
+    ],
+    "but": [
+     18
+    ],
+    "also": [
+     19
+    ],
+    "pull": [
+     20,
+     39
+    ],
+    "requests.": [
+     21,
+     40
+    ],
+    "Those": [
+     22
+    ],
+    "Agentic": [
+     23,
+     53,
+     72
+    ],
+    "Pull": [
+     24,
+     54,
+     73
+    ],
+    "Requests": [
+     25
+    ],
+    "flood": [
+     26
+    ],
+    "repositories,": [
+     27
+    ],
+    "and": [
+     28,
+     66
+    ],
+    "thus,": [
+     29
+    ],
+    "cause": [
+     30
+    ],
+    "effort": [
+     32
+    ],
+    "for": [
+     33,
+     69
+    ],
+    "integrators": [
+     34
+    ],
+    "that": [
+     35
+    ],
+    "must": [
+     36
+    ],
+    "review": [
+     37
+    ],
+    "these": [
+     38
+    ],
+    "However,": [
+     41
+    ],
+    "so": [
+     42
+    ],
+    "far": [
+     43
+    ],
+    "it": [
+     44
+    ],
+    "is": [
+     45
+    ],
+    "unclear": [
+     46
+    ],
+    "which": [
+     47
+    ],
+    "factors": [
+     48
+    ],
+    "influence": [
+     49
+    ],
+    "the": [
+     50
+    ],
+    "acceptance": [
+     51
+    ],
+    "of": [
+     52
+    ],
+    "Requests.": [
+     55,
+     74
+    ],
+    "Providing": [
+     56
+    ],
+    "insights": [
+     57
+    ],
+    "would": [
+     58
+    ],
+    "help": [
+     59
+    ],
+    "to": [
+     60
+    ],
+    "improve": [
+     61
+    ],
+    "Agents,": [
+     63
+    ],
+    "support": [
+     64
+    ],
+    "integrators,": [
+     65
+    ],
+    "provide": [
+     67
+    ],
+    "guidelines": [
+     68
+    ],
+    "users": [
+     70
+    ],
+    "creating": [
+     71
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W7171937279",
+   "doi": "https://doi.org/10.1145/3793302.3793570",
+   "title": "Bug-Fixing in the Age of AI: Human vs. Agentic Pull Requests",
+   "display_name": "Bug-Fixing in the Age of AI: Human vs. Agentic Pull Requests",
+   "publication_year": 2026,
+   "publication_date": "2026-04-13",
+   "type": "conference-paper",
+   "authorships": [
+    {
+     "author": {
+      "id": "https://openalex.org/A5104317110",
+      "display_name": "Renato Domingues"
+     }
+    },
+    {
+     "author": {
+      "id": "https://openalex.org/A5062400717",
+      "display_name": "Fernando Castor"
+     }
+    }
+   ],
+   "primary_location": {
+    "id": "doi:10.1145/3793302.3793570",
+    "doi": "https://doi.org/10.1145/3793302.3793570",
+    "is_oa": true,
+    "landing_page_url": "https://doi.org/10.1145/3793302.3793570",
+    "pdf_url": null,
+    "source": {
+     "id": "https://openalex.org/S7407088599",
+     "display_name": "International Conference on Mining Software Repositories (MSR)",
+     "issn_l": null,
+     "issn": null,
+     "is_oa": false,
+     "is_in_doaj": false,
+     "is_core": false,
+     "listed_in": [],
+     "host_organization": null,
+     "host_organization_name": null,
+     "host_organization_lineage": [],
+     "host_organization_lineage_names": [],
+     "type": "conference"
+    },
+    "license": "cc-by",
+    "license_id": "https://openalex.org/licenses/cc-by",
+    "version": "publishedVersion",
+    "is_accepted": true,
+    "is_published": true,
+    "raw_source_name": "Proceedings of the 23rd International Conference on Mining Software Repositories",
+    "raw_type": "proceedings-article"
+   },
+   "locations": [
+    {
+     "id": "doi:10.1145/3793302.3793570",
+     "doi": "https://doi.org/10.1145/3793302.3793570",
+     "is_oa": true,
+     "landing_page_url": "https://doi.org/10.1145/3793302.3793570",
+     "pdf_url": null,
+     "source": {
+      "id": "https://openalex.org/S7407088599",
+      "display_name": "International Conference on Mining Software Repositories (MSR)",
+      "issn_l": null,
+      "issn": null,
+      "is_oa": false,
+      "is_in_doaj": false,
+      "is_core": false,
+      "listed_in": [],
+      "host_organization": null,
+      "host_organization_name": null,
+      "host_organization_lineage": [],
+      "host_organization_lineage_names": [],
+      "type": "conference"
+     },
+     "license": "cc-by",
+     "license_id": "https://openalex.org/licenses/cc-by",
+     "version": "publishedVersion",
+     "is_accepted": true,
+     "is_published": true,
+     "raw_source_name": "Proceedings of the 23rd International Conference on Mining Software Repositories",
+     "raw_type": "proceedings-article"
+    }
+   ],
+   "best_oa_location": {
+    "id": "doi:10.1145/3793302.3793570",
+    "doi": "https://doi.org/10.1145/3793302.3793570",
+    "is_oa": true,
+    "landing_page_url": "https://doi.org/10.1145/3793302.3793570",
+    "pdf_url": null,
+    "source": {
+     "id": "https://openalex.org/S7407088599",
+     "display_name": "International Conference on Mining Software Repositories (MSR)",
+     "issn_l": null,
+     "issn": null,
+     "is_oa": false,
+     "is_in_doaj": false,
+     "is_core": false,
+     "listed_in": [],
+     "host_organization": null,
+     "host_organization_name": null,
+     "host_organization_lineage": [],
+     "host_organization_lineage_names": [],
+     "type": "conference"
+    },
+    "license": "cc-by",
+    "license_id": "https://openalex.org/licenses/cc-by",
+    "version": "publishedVersion",
+    "is_accepted": true,
+    "is_published": true,
+    "raw_source_name": "Proceedings of the 23rd International Conference on Mining Software Repositories",
+    "raw_type": "proceedings-article"
+   },
+   "open_access": {
+    "is_oa": true,
+    "oa_status": "hybrid",
+    "oa_url": "https://doi.org/10.1145/3793302.3793570",
+    "any_repository_has_fulltext": false
+   },
+   "cited_by_count": 0,
+   "abstract_inverted_index": {
+    "AI": [
+     0,
+     143
+    ],
+    "coding": [
+     1,
+     16
+    ],
+    "agents": [
+     2,
+     144
+    ],
+    "have": [
+     3,
+     59
+    ],
+    "been": [
+     4
+    ],
+    "increasingly": [
+     5
+    ],
+    "integrated": [
+     6
+    ],
+    "into": [
+     7
+    ],
+    "software": [
+     8
+    ],
+    "development": [
+     9
+    ],
+    "workflows": [
+     10
+    ],
+    "to": [
+     11,
+     105,
+     112,
+     119
+    ],
+    "help": [
+     12
+    ],
+    "developers": [
+     13
+    ],
+    "with": [
+     14
+    ],
+    "various": [
+     15
+    ],
+    "tasks.": [
+     17
+    ],
+    "However,": [
+     18
+    ],
+    "their": [
+     19
+    ],
+    "effectiveness": [
+     20
+    ],
+    "in": [
+     21,
+     149
+    ],
+    "real": [
+     22
+    ],
+    "bug-fixing": [
+     23
+    ],
+    "tasks": [
+     24
+    ],
+    "remains": [
+     25
+    ],
+    "uncertain.": [
+     26
+    ],
+    "In": [
+     27,
+     124
+    ],
+    "this": [
+     28
+    ],
+    "paper,": [
+     29
+    ],
+    "we": [
+     30,
+     85
+    ],
+    "report": [
+     31
+    ],
+    "on": [
+     32,
+     139
+    ],
+    "an": [
+     33
+    ],
+    "analysis": [
+     34
+    ],
+    "of": [
+     35,
+     82,
+     96,
+     142
+    ],
+    "9,052": [
+     36
+    ],
+    "pull": [
+     37
+    ],
+    "requests": [
+     38
+    ],
+    "(PRs)": [
+     39
+    ],
+    "from": [
+     40,
+     50
+    ],
+    "five": [
+     41,
+     94
+    ],
+    "agents—Codex,": [
+     42
+    ],
+    "Copilot,": [
+     43
+    ],
+    "Cursor,": [
+     44
+    ],
+    "Claude,": [
+     45
+    ],
+    "and": [
+     46,
+     92,
+     110,
+     145,
+     153
+    ],
+    "Devin—alongside": [
+     47
+    ],
+    "human-authored": [
+     48,
+     64
+    ],
+    "PRs": [
+     49,
+     58,
+     65,
+     91,
+     128
+    ],
+    "the": [
+     51,
+     77,
+     80,
+     121
+    ],
+    "same": [
+     52
+    ],
+    "projects.": [
+     53
+    ],
+    "We": [
+     54
+    ],
+    "found": [
+     55
+    ],
+    "that": [
+     56
+    ],
+    "agentic": [
+     57,
+     83,
+     90,
+     127
+    ],
+    "lower": [
+     60
+    ],
+    "acceptance": [
+     61
+    ],
+    "rates": [
+     62
+    ],
+    "than": [
+     63
+    ],
+    "(71.37%": [
+     66
+    ],
+    "vs.": [
+     67
+    ],
+    "87.62%),": [
+     68
+    ],
+    "although": [
+     69
+    ],
+    "substantial": [
+     70
+    ],
+    "variation": [
+     71
+    ],
+    "exists": [
+     72
+    ],
+    "between": [
+     73
+    ],
+    "agents.": [
+     74
+    ],
+    "To": [
+     75
+    ],
+    "understand": [
+     76
+    ],
+    "reasons": [
+     78
+    ],
+    "behind": [
+     79
+    ],
+    "rejection": [
+     81,
+     97
+    ],
+    "PRs,": [
+     84
+    ],
+    "manually": [
+     86
+    ],
+    "examined": [
+     87
+    ],
+    "201": [
+     88
+    ],
+    "rejected": [
+     89
+    ],
+    "derived": [
+     93
+    ],
+    "categories": [
+     95
+    ],
+    "factors.": [
+     98
+    ],
+    "The": [
+     99
+    ],
+    "most": [
+     100
+    ],
+    "frequent": [
+     101
+    ],
+    "issues": [
+     102
+    ],
+    "are": [
+     103,
+     129
+    ],
+    "related": [
+     104
+    ],
+    "code": [
+     106
+    ],
+    "quality,": [
+     107
+    ],
+    "solution": [
+     108
+    ],
+    "suitability,": [
+     109
+    ],
+    "failure": [
+     111
+    ],
+    "address": [
+     113
+    ],
+    "reviewer": [
+     114
+    ],
+    "feedback,": [
+     115
+    ],
+    "often": [
+     116
+    ],
+    "leading": [
+     117
+    ],
+    "maintainers": [
+     118
+    ],
+    "abandon": [
+     120
+    ],
+    "review": [
+     122
+    ],
+    "process.": [
+     123
+    ],
+    "many": [
+     125
+    ],
+    "cases,": [
+     126
+    ],
+    "also": [
+     130
+    ],
+    "superseded": [
+     131
+    ],
+    "by": [
+     132
+    ],
+    "other": [
+     133
+    ],
+    "PRs.": [
+     134
+    ],
+    "These": [
+     135
+    ],
+    "findings": [
+     136
+    ],
+    "shed": [
+     137
+    ],
+    "light": [
+     138
+    ],
+    "current": [
+     140
+    ],
+    "limitations": [
+     141
+    ],
+    "highlight": [
+     146
+    ],
+    "key": [
+     147
+    ],
+    "challenges": [
+     148
+    ],
+    "developing": [
+     150
+    ],
+    "more": [
+     151
+    ],
+    "reliable": [
+     152
+    ],
+    "context-aware": [
+     154
+    ],
+    "automated": [
+     155
+    ],
+    "contributors.": [
+     156
+    ]
+   }
+  }
+ ]
+}

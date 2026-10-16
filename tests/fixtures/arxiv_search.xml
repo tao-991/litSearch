@@ -1,0 +1,89 @@
+<?xml version='1.0' encoding='utf-8'?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">
+  <id>https://arxiv.org/api/FDJb7cI7nwxs7tUCQdKaCHgtw/0</id>
+  <title>arXiv Query: search_query=all:"coding agent" AND all:"pull request"&amp;id_list=&amp;start=0&amp;max_results=20</title>
+  <updated>2026-10-16T03:49:52Z</updated>
+  <link href="https://arxiv.org/api/query?search_query=all:%22coding+agent%22+AND+all:%22pull+request%22&amp;start=0&amp;max_results=20&amp;id_list=" type="application/atom+xml" />
+  <opensearch:itemsPerPage>20</opensearch:itemsPerPage>
+  <opensearch:totalResults>108</opensearch:totalResults>
+  <opensearch:startIndex>0</opensearch:startIndex>
+  <entry>
+    <id>http://arxiv.org/abs/2602.17084v1</id>
+    <title>How AI Coding Agents Communicate: A Study of Pull Request Description Characteristics and Human Review Responses</title>
+    <updated>2026-02-19T05:06:31Z</updated>
+    <link href="https://arxiv.org/abs/2602.17084v1" rel="alternate" type="text/html" />
+    <link href="https://arxiv.org/pdf/2602.17084v1" rel="related" type="application/pdf" title="pdf" />
+    <summary>The rapid adoption of large language models has led to the emergence of AI coding agents that autonomously create pull requests on GitHub. However, how these agents differ in their pull request description characteristics, and how human reviewers respond to them, remains underexplored. In this study, we conduct an empirical analysis of pull requests created by five AI coding agents using the AIDev dataset. We analyze agent differences in pull request description characteristics, including structural features, and examine human reviewer response in terms of review activity, response timing, sentiment, and merge outcomes. We find that AI coding agents exhibit distinct PR description styles, which are associated with differences in reviewer engagement, response time, and merge outcomes. We observe notable variation across agents in both reviewer interaction metrics and merge rates. These findings highlight the role of pull request presentation and reviewer interaction dynamics in human-AI collaborative software development.</summary>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom" />
+    <category term="cs.SE" scheme="http://arxiv.org/schemas/atom" />
+    <published>2026-02-19T05:06:31Z</published>
+    <arxiv:primary_category term="cs.AI" />
+    <author>
+      <name>Kan Watanabe</name>
+    </author>
+    <author>
+      <name>Rikuto Tsuchida</name>
+    </author>
+    </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.03551v2</id>
+    <title>AgenticFlict: A Large-Scale Dataset of Merge Conflicts in AI Coding Agent Pull Requests on GitHub</title>
+    <updated>2026-05-12T22:34:17Z</updated>
+    <link href="https://arxiv.org/abs/2604.03551v2" rel="alternate" type="text/html" />
+    <link href="https://arxiv.org/pdf/2604.03551v2" rel="related" type="application/pdf" title="pdf" />
+    <summary>Software Engineering 3.0 marks a paradigm shift in software development, in which AI coding agents are no longer just assistive tools but active contributors. While prior empirical studies have examined productivity gains and acceptance patterns in AI-assisted development, the challenges associated with integrating agent-generated contributions remain less understood. In particular, merge conflicts, a fundamental aspect of collaborative software development, remain underexplored in this context. In this paper, we present AgenticFlict, a large-scale dataset of textual merge conflicts in AI coding agent pull requests (Agentic PRs). The dataset comprises 142K+ Agentic PRs collected from 59K+ repositories, of which 107K+ are successfully processed through deterministic merge simulation. Our pipeline identifies 29K+ PRs exhibiting merge conflicts, yielding a conflict rate of 27.67%, and extracts 336K+ fine-grained conflict regions across these instances. Our preliminary exploratory analysis indicates that merge conflicts are both frequent and often substantial in AI-generated contributions, with noticeable variation across agents, emphasizing the need to better understand and manage integration challenges in AI-assisted software development. The dataset, code and supplementary materials are available in zenodo: https://doi.org/10.5281/zenodo.19396916.</summary>
+    <category term="cs.SE" scheme="http://arxiv.org/schemas/atom" />
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom" />
+    <category term="cs.HC" scheme="http://arxiv.org/schemas/atom" />
+    <published>2026-04-04T02:36:22Z</published>
+    <arxiv:comment>Accepted at the 3rd ACM International Conference on AI-Powered Software (AIware 2026)</arxiv:comment>
+    <arxiv:primary_category term="cs.SE" />
+    <author>
+      <name>Daniel Ogenrwot</name>
+    </author>
+    <author>
+      <name>John Businge</name>
+    </author>
+    <arxiv:doi>10.1145/3805760.3814923</arxiv:doi>
+    <link rel="related" href="https://doi.org/10.1145/3805760.3814923" title="doi" />
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2512.11589v2</id>
+    <title>A Study of Library Usage in Agent-Authored Pull Requests</title>
+    <updated>2026-01-27T09:37:05Z</updated>
+    <link href="https://arxiv.org/abs/2512.11589v2" rel="alternate" type="text/html" />
+    <link href="https://arxiv.org/pdf/2512.11589v2" rel="related" type="application/pdf" title="pdf" />
+    <summary>Coding agents are becoming increasingly capable of completing end-to-end software engineering workflows that previously required a human developer, including raising pull requests (PRs) to propose their changes. However, we still know little about how these agents use libraries when generating code, a core part of real-world software development. To fill this gap, we study 26,760 agent-authored PRs from the AIDev dataset to examine three questions: how often do agents import libraries, how often do they introduce new dependencies (and with what versioning), and which specific libraries do they choose? We find that agents often import libraries (29.5% of PRs) but rarely add new dependencies (1.3% of PRs); and when they do, they follow strong versioning practices (75.0% specify a version), an improvement on direct LLM usage where versions are rarely mentioned. Generally, agents draw from a surprisingly diverse set of external libraries, contrasting with the limited "library preferences" seen in prior non-agentic LLM studies. Our findings offer an early empirical view on how AI coding agents interact with today's software ecosystems.</summary>
+    <category term="cs.SE" scheme="http://arxiv.org/schemas/atom" />
+    <published>2025-12-12T14:21:37Z</published>
+    <arxiv:comment>5 pages, 3 tables. Accepted at MSR '26 (Challenge Track)</arxiv:comment>
+    <arxiv:primary_category term="cs.SE" />
+    <arxiv:journal_ref>23rd International Conference on Mining Software Repositories: MSR 2026</arxiv:journal_ref>
+    <author>
+      <name>Lukas Twist</name>
+    </author>
+    <author>
+      <name>Jie M. Zhang</name>
+    </author>
+    <arxiv:doi>10.1145/3793302.3793562</arxiv:doi>
+    <link rel="related" href="https://doi.org/10.1145/3793302.3793562" title="doi" />
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.14408v1</id>
+    <title>ToxiShield: Promoting Inclusive Developer Communication through Real-Time Toxicity Filtering</title>
+    <updated>2026-04-15T20:46:40Z</updated>
+    <link href="https://arxiv.org/abs/2604.14408v1" rel="alternate" type="text/html" />
+    <link href="https://arxiv.org/pdf/2604.14408v1" rel="related" type="application/pdf" title="pdf" />
+    <summary>Toxic interactions during code reviews can undermine teamwork and hinder productivity in software engineering (SE) teams. While prior studies explore toxicity detection and empirical investigation, they lack real-time detoxification tools to support the SE community. To address this gap, we present ToxiShield, a browser extension for GitHub pull requests that is built using three modules: i) Toxicity Filter -- to identify whether a text is toxic, ii) Communication coach -- to facilitate just-in-time fine-grained toxicity categorization with explanations, and iii) The Reframer -- that generates a revised, constructive alternative of a toxic text. For each module, we trained and evaluated multiple deep learning and Large Language Models (LLMs) to identify the best choice. A BERT-based binary detection model, trained on 38,761 code review samples, achieves 98% accuracy and an F1-score of 97% and is the selected one for the Toxicity Filter module. For the Communication Coach, prompt-tuned Claude 3.5 Sonnet achieved the best performance with 39% MCC and 42% F1 in multiclass toxicity classification with detailed reasoning. For Reframer, we evaluated five LLMs using a fine-tuning strategy on a dataset of 10,120 code review comments. The fine-tuned Llama 3.2 model achieves 95.27% style transfer accuracy, 97.03% fluency, 67.07% content preservation, and an 84% J-score. We further validated ToxiShield through a human evaluation using the Technology Acceptance Model with 10 participants, confirming its perceived usefulness and ease of adoption. ToxiShield sets a benchmark for advancing constructive communication in software engineering, driving inclusivity and healthier collaboration in open-source communities.</summary>
+    <category term="cs.SE" scheme="http://arxiv.org/schemas/atom" />
+    <published>2026-04-15T20:46:40Z</published>
+    <arxiv:primary_category term="cs.SE" />
+    <arxiv:journal_ref>FSE'2026</arxiv:journal_ref>
+    <author>
+      <name>MD Awsaf Alam Anindya</name>
+    </author>
+    <author>
+      <name>Showvik Biswas</name>
+    </author>
+    </entry>
+  </feed>

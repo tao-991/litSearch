@@ -1,0 +1,1284 @@
+{
+ "meta": {
+  "count": 3,
+  "page": 1,
+  "per_page": 50
+ },
+ "results": [
+  {
+   "id": "https://openalex.org/W4311991106",
+   "doi": "https://doi.org/10.4230/lipics.esem.2026.75",
+   "title": "AI-to-AI Code Reviews of GitHub Pull Requests",
+   "display_name": "AI-to-AI Code Reviews of GitHub Pull Requests",
+   "publication_year": 2022,
+   "publication_date": "2022-12-15",
+   "type": "preprint",
+   "authorships": [
+    {
+     "author": {
+      "id": null,
+      "display_name": "Bai, Yuntao"
+     }
+    },
+    {
+     "author": {
+      "id": "https://openalex.org/A5061506488",
+      "display_name": "Saurav Kadavath"
+     }
+    }
+   ],
+   "primary_location": {
+    "id": "pmh:oai:arXiv.org:2212.08073",
+    "doi": null,
+    "is_oa": true,
+    "landing_page_url": "http://arxiv.org/abs/2212.08073",
+    "pdf_url": "https://arxiv.org/pdf/2212.08073",
+    "source": {
+     "id": "https://openalex.org/S4306400194",
+     "display_name": "arXiv (Cornell University)",
+     "issn_l": "2331-8422",
+     "issn": [
+      "2331-8422"
+     ],
+     "is_oa": true,
+     "is_in_doaj": false,
+     "is_core": false,
+     "listed_in": [],
+     "host_organization": "https://openalex.org/I205783295",
+     "host_organization_name": "Cornell University",
+     "host_organization_lineage": [
+      "https://openalex.org/I205783295"
+     ],
+     "host_organization_lineage_names": [],
+     "type": "repository"
+    },
+    "license": null,
+    "license_id": null,
+    "version": "submittedVersion",
+    "is_accepted": false,
+    "is_published": false,
+    "raw_source_name": null,
+    "raw_type": "text"
+   },
+   "locations": [
+    {
+     "id": "pmh:oai:arXiv.org:2212.08073",
+     "doi": null,
+     "is_oa": true,
+     "landing_page_url": "http://arxiv.org/abs/2212.08073",
+     "pdf_url": "https://arxiv.org/pdf/2212.08073",
+     "source": {
+      "id": "https://openalex.org/S4306400194",
+      "display_name": "arXiv (Cornell University)",
+      "issn_l": "2331-8422",
+      "issn": [
+       "2331-8422"
+      ],
+      "is_oa": true,
+      "is_in_doaj": false,
+      "is_core": false,
+      "listed_in": [],
+      "host_organization": "https://openalex.org/I205783295",
+      "host_organization_name": "Cornell University",
+      "host_organization_lineage": [
+       "https://openalex.org/I205783295"
+      ],
+      "host_organization_lineage_names": [],
+      "type": "repository"
+     },
+     "license": null,
+     "license_id": null,
+     "version": "submittedVersion",
+     "is_accepted": false,
+     "is_published": false,
+     "raw_source_name": null,
+     "raw_type": "text"
+    },
+    {
+     "id": "pmh:oai:drops-oai.dagstuhl.de:28043",
+     "doi": null,
+     "is_oa": true,
+     "landing_page_url": "https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.ESEM.2026.75",
+     "pdf_url": "https://drops.dagstuhl.de/storage/00lipics/lipics-vol394-esem2026/LIPIcs.ESEM.2026.75/LIPIcs.ESEM.2026.75.pdf",
+     "source": {
+      "id": "https://openalex.org/S4377196569",
+      "display_name": "DROPS (Schloss Dagstuhl – Leibniz Center for Informatics)",
+      "issn_l": null,
+      "issn": null,
+      "is_oa": false,
+      "is_in_doaj": false,
+      "is_core": false,
+      "listed_in": [],
+      "host_organization": "https://openalex.org/I2799853480",
+      "host_organization_name": "Schloss Dagstuhl – Leibniz Center for Informatics",
+      "host_organization_lineage": [
+       "https://openalex.org/I2799853480"
+      ],
+      "host_organization_lineage_names": [],
+      "type": "repository"
+     },
+     "license": "cc-by",
+     "license_id": "https://openalex.org/licenses/cc-by",
+     "version": "submittedVersion",
+     "is_accepted": false,
+     "is_published": false,
+     "raw_source_name": null,
+     "raw_type": "InProceedings"
+    },
+    {
+     "id": "doi:10.48550/arxiv.2212.08073",
+     "doi": "https://doi.org/10.48550/arxiv.2212.08073",
+     "is_oa": true,
+     "landing_page_url": "https://doi.org/10.48550/arxiv.2212.08073",
+     "pdf_url": null,
+     "source": {
+      "id": "https://openalex.org/S4306400194",
+      "display_name": "arXiv (Cornell University)",
+      "issn_l": "2331-8422",
+      "issn": [
+       "2331-8422"
+      ],
+      "is_oa": true,
+      "is_in_doaj": false,
+      "is_core": false,
+      "listed_in": [],
+      "host_organization": "https://openalex.org/I205783295",
+      "host_organization_name": "Cornell University",
+      "host_organization_lineage": [
+       "https://openalex.org/I205783295"
+      ],
+      "host_organization_lineage_names": [],
+      "type": "repository"
+     },
+     "license": "cc-by",
+     "license_id": "https://openalex.org/licenses/cc-by",
+     "version": null,
+     "is_accepted": false,
+     "is_published": null,
+     "raw_source_name": null,
+     "raw_type": "Preprint"
+    },
+    {
+     "id": "doi:10.4230/lipics.esem.2026.75",
+     "doi": "https://doi.org/10.4230/lipics.esem.2026.75",
+     "is_oa": true,
+     "landing_page_url": "https://doi.org/10.4230/lipics.esem.2026.75",
+     "pdf_url": null,
+     "source": {
+      "id": "https://openalex.org/S4393917817",
+      "display_name": "Leibniz international proceedings in informatics",
+      "issn_l": "1868-8969",
+      "issn": [
+       "1868-8969"
+      ],
+      "is_oa": true,
+      "is_in_doaj": true,
+      "is_core": false,
+      "listed_in": [
+       "doaj",
+       "jufo-1",
+       "norway-1"
+      ],
+      "host_organization": null,
+      "host_organization_name": null,
+      "host_organization_lineage": [],
+      "host_organization_lineage_names": [],
+      "type": "journal"
+     },
+     "license": "cc-by",
+     "license_id": "https://openalex.org/licenses/cc-by",
+     "version": null,
+     "is_accepted": false,
+     "is_published": null,
+     "raw_source_name": null,
+     "raw_type": "ConferencePaper"
+    },
+    {
+     "id": "doi:10.5281/zenodo.18013288",
+     "doi": "https://doi.org/10.5281/zenodo.18013288",
+     "is_oa": true,
+     "landing_page_url": "https://doi.org/10.5281/zenodo.18013288",
+     "pdf_url": null,
+     "source": {
+      "id": "https://openalex.org/S4306400562",
+      "display_name": "Zenodo (CERN European Organization for Nuclear Research)",
+      "issn_l": null,
+      "issn": null,
+      "is_oa": true,
+      "is_in_doaj": false,
+      "is_core": false,
+      "listed_in": [],
+      "host_organization": "https://openalex.org/I67311998",
+      "host_organization_name": "European Organization for Nuclear Research",
+      "host_organization_lineage": [
+       "https://openalex.org/I67311998"
+      ],
+      "host_organization_lineage_names": [],
+      "type": "repository"
+     },
+     "license": null,
+     "license_id": null,
+     "version": null,
+     "is_accepted": false,
+     "is_published": null,
+     "raw_source_name": null,
+     "raw_type": "Book"
+    },
+    {
+     "id": "doi:10.5281/zenodo.18013289",
+     "doi": "https://doi.org/10.5281/zenodo.18013289",
+     "is_oa": true,
+     "landing_page_url": "https://doi.org/10.5281/zenodo.18013289",
+     "pdf_url": null,
+     "source": {
+      "id": "https://openalex.org/S4306400562",
+      "display_name": "Zenodo (CERN European Organization for Nuclear Research)",
+      "issn_l": null,
+      "issn": null,
+      "is_oa": true,
+      "is_in_doaj": false,
+      "is_core": false,
+      "listed_in": [],
+      "host_organization": "https://openalex.org/I67311998",
+      "host_organization_name": "European Organization for Nuclear Research",
+      "host_organization_lineage": [
+       "https://openalex.org/I67311998"
+      ],
+      "host_organization_lineage_names": [],
+      "type": "repository"
+     },
+     "license": null,
+     "license_id": null,
+     "version": null,
+     "is_accepted": false,
+     "is_published": null,
+     "raw_source_name": null,
+     "raw_type": "Book"
+    },
+    {
+     "id": "doi:10.5281/zenodo.20427605",
+     "doi": "https://doi.org/10.5281/zenodo.20427605",
+     "is_oa": true,
+     "landing_page_url": "https://doi.org/10.5281/zenodo.20427605",
+     "pdf_url": null,
+     "source": {
+      "id": "https://openalex.org/S4306400562",
+      "display_name": "Zenodo (CERN European Organization for Nuclear Research)",
+      "issn_l": null,
+      "issn": null,
+      "is_oa": true,
+      "is_in_doaj": false,
+      "is_core": false,
+      "listed_in": [],
+      "host_organization": "https://openalex.org/I67311998",
+      "host_organization_name": "European Organization for Nuclear Research",
+      "host_organization_lineage": [
+       "https://openalex.org/I67311998"
+      ],
+      "host_organization_lineage_names": [],
+      "type": "repository"
+     },
+     "license": "cc-by",
+     "license_id": "https://openalex.org/licenses/cc-by",
+     "version": null,
+     "is_accepted": false,
+     "is_published": null,
+     "raw_source_name": null,
+     "raw_type": "Preprint"
+    }
+   ],
+   "best_oa_location": {
+    "id": "pmh:oai:arXiv.org:2212.08073",
+    "doi": null,
+    "is_oa": true,
+    "landing_page_url": "http://arxiv.org/abs/2212.08073",
+    "pdf_url": "https://arxiv.org/pdf/2212.08073",
+    "source": {
+     "id": "https://openalex.org/S4306400194",
+     "display_name": "arXiv (Cornell University)",
+     "issn_l": "2331-8422",
+     "issn": [
+      "2331-8422"
+     ],
+     "is_oa": true,
+     "is_in_doaj": false,
+     "is_core": false,
+     "listed_in": [],
+     "host_organization": "https://openalex.org/I205783295",
+     "host_organization_name": "Cornell University",
+     "host_organization_lineage": [
+      "https://openalex.org/I205783295"
+     ],
+     "host_organization_lineage_names": [],
+     "type": "repository"
+    },
+    "license": null,
+    "license_id": null,
+    "version": "submittedVersion",
+    "is_accepted": false,
+    "is_published": false,
+    "raw_source_name": null,
+    "raw_type": "text"
+   },
+   "open_access": {
+    "is_oa": true,
+    "oa_status": "green",
+    "oa_url": "https://arxiv.org/pdf/2212.08073",
+    "any_repository_has_fulltext": true
+   },
+   "cited_by_count": 319,
+   "abstract_inverted_index": {
+    "AI": [
+     0,
+     20,
+     29,
+     41,
+     48,
+     87,
+     94,
+     102,
+     138,
+     250
+    ],
+    "coding": [
+     1,
+     42,
+     49,
+     76,
+     88
+    ],
+    "agents": [
+     2,
+     89
+    ],
+    "are": [
+     3,
+     268
+    ],
+    "increasingly": [
+     4
+    ],
+    "integrated": [
+     5
+    ],
+    "into": [
+     6
+    ],
+    "software": [
+     7
+    ],
+    "development": [
+     8
+    ],
+    "workflows,": [
+     9
+    ],
+    "operating": [
+     10
+    ],
+    "on": [
+     11,
+     288
+    ],
+    "both": [
+     12
+    ],
+    "sides": [
+     13
+    ],
+    "of": [
+     14,
+     46,
+     75,
+     122,
+     152,
+     212
+    ],
+    "the": [
+     15,
+     107,
+     208,
+     224,
+     235,
+     240,
+     274,
+     289
+    ],
+    "pull": [
+     16,
+     64
+    ],
+    "request": [
+     17
+    ],
+    "(PR)": [
+     18
+    ],
+    "process:": [
+     19
+    ],
+    "authoring": [
+     21
+    ],
+    "agents,": [
+     22
+    ],
+    "which": [
+     23,
+     31,
+     265
+    ],
+    "create": [
+     24
+    ],
+    "or": [
+     25,
+     232
+    ],
+    "modify": [
+     26
+    ],
+    "PRs,": [
+     27
+    ],
+    "and": [
+     28,
+     104,
+     140,
+     169,
+     174,
+     234,
+     258,
+     303
+    ],
+    "reviewers,": [
+     30,
+     215
+    ],
+    "evaluate": [
+     32
+    ],
+    "them.": [
+     33
+    ],
+    "This": [
+     34,
+     144
+    ],
+    "creates": [
+     35
+    ],
+    "a": [
+     36,
+     72,
+     100,
+     198,
+     293
+    ],
+    "closed": [
+     37
+    ],
+    "loop": [
+     38
+    ],
+    "where": [
+     39
+    ],
+    "one": [
+     40,
+     93,
+     136
+    ],
+    "agent": [
+     43
+    ],
+    "reviews": [
+     44
+    ],
+    "contributions": [
+     45
+    ],
+    "another": [
+     47
+    ],
+    "agent.": [
+     50
+    ],
+    "In": [
+     51
+    ],
+    "this": [
+     52
+    ],
+    "paper,": [
+     53
+    ],
+    "we": [
+     54
+    ],
+    "construct": [
+     55
+    ],
+    "an": [
+     56
+    ],
+    "AI-to-AI": [
+     57,
+     114,
+     284
+    ],
+    "code": [
+     58,
+     115,
+     285
+    ],
+    "review": [
+     59,
+     68,
+     116,
+     251,
+     286,
+     297
+    ],
+    "dataset": [
+     60,
+     74,
+     81
+    ],
+    "by": [
+     61,
+     99,
+     106,
+     135,
+     142,
+     147
+    ],
+    "linking": [
+     62
+    ],
+    "AI-authored": [
+     63
+    ],
+    "requests": [
+     65
+    ],
+    "with": [
+     66,
+     90,
+     296
+    ],
+    "AI-attributed": [
+     67
+    ],
+    "events": [
+     69
+    ],
+    "from": [
+     70,
+     154,
+     190,
+     203,
+     245
+    ],
+    "CodAGE,": [
+     71
+    ],
+    "public": [
+     73
+    ],
+    "agent–generated": [
+     77
+    ],
+    "GitHub": [
+     78
+    ],
+    "events.": [
+     79
+    ],
+    "Our": [
+     80
+    ],
+    "contains": [
+     82
+    ],
+    "νm{248641}": [
+     83
+    ],
+    "PRs": [
+     84,
+     125,
+     133,
+     185,
+     194,
+     204
+    ],
+    "across": [
+     85,
+     179,
+     300
+    ],
+    "12": [
+     86
+    ],
+    "at": [
+     91
+    ],
+    "least": [
+     92
+    ],
+    "review,": [
+     95,
+     173
+    ],
+    "including": [
+     96
+    ],
+    "νm{45269}": [
+     97
+    ],
+    "reviewed": [
+     98,
+     141
+    ],
+    "different": [
+     101
+    ],
+    "product": [
+     103,
+     139,
+     275
+    ],
+    "νm{208145}": [
+     105
+    ],
+    "same": [
+     108
+    ],
+    "product.": [
+     109
+    ],
+    "We": [
+     110,
+     158
+    ],
+    "observe": [
+     111
+    ],
+    "that": [
+     112,
+     176,
+     200,
+     282
+    ],
+    "cross-product": [
+     113,
+     256
+    ],
+    "occurs": [
+     117
+    ],
+    "in": [
+     118,
+     129,
+     223,
+     239,
+     269
+    ],
+    "only": [
+     119
+    ],
+    "about": [
+     120
+    ],
+    "1.6%": [
+     121
+    ],
+    "identified": [
+     123
+    ],
+    "agent-authored": [
+     124
+    ],
+    "but": [
+     126,
+     291
+    ],
+    "is": [
+     127,
+     287
+    ],
+    "substantial": [
+     128
+    ],
+    "absolute": [
+     130
+    ],
+    "terms:": [
+     131
+    ],
+    "45k": [
+     132
+    ],
+    "written": [
+     134
+    ],
+    "identifiable": [
+     137
+    ],
+    "another.": [
+     143
+    ],
+    "activity": [
+     145
+    ],
+    "grows": [
+     146
+    ],
+    "more": [
+     148,
+     187
+    ],
+    "than": [
+     149,
+     192,
+     207,
+     273
+    ],
+    "two": [
+     150
+    ],
+    "orders": [
+     151
+    ],
+    "magnitude": [
+     153
+    ],
+    "2025-Q1": [
+     155
+    ],
+    "to": [
+     156,
+     171,
+     248
+    ],
+    "2025-Q3.": [
+     157
+    ],
+    "measure": [
+     159
+    ],
+    "reviewer": [
+     160,
+     266
+    ],
+    "behavior": [
+     161
+    ],
+    "using": [
+     162
+    ],
+    "CodeRabbit": [
+     163,
+     191
+    ],
+    "comment": [
+     164,
+     167
+    ],
+    "categories,": [
+     165
+    ],
+    "per-PR": [
+     166
+    ],
+    "volume,": [
+     168
+    ],
+    "time": [
+     170,
+     244
+    ],
+    "first": [
+     172,
+     249
+    ],
+    "find": [
+     175
+    ],
+    "it": [
+     177
+    ],
+    "varies": [
+     178
+    ],
+    "author–reviewer": [
+     180
+    ],
+    "pairs.": [
+     181
+    ],
+    "For": [
+     182,
+     210
+    ],
+    "example,": [
+     183
+    ],
+    "Claude-Code": [
+     184
+    ],
+    "receive": [
+     186
+    ],
+    "refactor": [
+     188
+    ],
+    "comments": [
+     189,
+     217
+    ],
+    "Copilot": [
+     193
+    ],
+    "(35.0%": [
+     195
+    ],
+    "vs.": [
+     196
+    ],
+    "10.5%),": [
+     197
+    ],
+    "difference": [
+     199,
+     236
+    ],
+    "may": [
+     201
+    ],
+    "stem": [
+     202
+    ],
+    "themselves": [
+     205
+    ],
+    "rather": [
+     206,
+     272
+    ],
+    "reviewer.": [
+     209
+    ],
+    "three": [
+     211
+    ],
+    "four": [
+     213
+    ],
+    "dual-role": [
+     214
+    ],
+    "mean": [
+     216
+    ],
+    "per": [
+     218
+    ],
+    "PR": [
+     219,
+     246
+    ],
+    "were": [
+     220,
+     230
+    ],
+    "58-65%": [
+     221
+    ],
+    "higher": [
+     222
+    ],
+    "same-product": [
+     225,
+     262
+    ],
+    "group,": [
+     226
+    ],
+    "though": [
+     227
+    ],
+    "effect": [
+     228
+    ],
+    "sizes": [
+     229
+    ],
+    "small": [
+     231
+    ],
+    "negligible": [
+     233
+    ],
+    "was": [
+     237,
+     252
+    ],
+    "concentrated": [
+     238
+    ],
+    "upper": [
+     241
+    ],
+    "tail.": [
+     242
+    ],
+    "Median": [
+     243
+    ],
+    "creation": [
+     247
+    ],
+    "1.2": [
+     253
+    ],
+    "minutes": [
+     254,
+     260
+    ],
+    "for": [
+     255,
+     261
+    ],
+    "pairs": [
+     257
+    ],
+    "4.7": [
+     259
+    ],
+    "pairs,": [
+     263
+    ],
+    "reflecting": [
+     264
+    ],
+    "bots": [
+     267
+    ],
+    "each": [
+     270
+    ],
+    "group": [
+     271
+    ],
+    "pairing.": [
+     276
+    ],
+    "Overall,": [
+     277
+    ],
+    "our": [
+     278
+    ],
+    "large-scale": [
+     279
+    ],
+    "characterization": [
+     280
+    ],
+    "shows": [
+     281
+    ],
+    "closed-loop": [
+     283
+    ],
+    "rise": [
+     290
+    ],
+    "remains": [
+     292
+    ],
+    "minority": [
+     294
+    ],
+    "phenomenon,": [
+     295
+    ],
+    "output": [
+     298
+    ],
+    "varying": [
+     299
+    ],
+    "authoring-agent": [
+     301
+    ],
+    "groups": [
+     302
+    ],
+    "author-reviewer": [
+     304
+    ],
+    "configurations.": [
+     305
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W7130511840",
+   "doi": "https://doi.org/10.2139/ssrn.6269349",
+   "title": "Security in the Age of AI Teammates: An Empirical Study of Agentic Pull Requests on GitHub",
+   "display_name": "Security in the Age of AI Teammates: An Empirical Study of Agentic Pull Requests on GitHub",
+   "publication_year": 2026,
+   "publication_date": "2026-01-01",
+   "type": "preprint",
+   "authorships": [
+    {
+     "author": {
+      "id": "https://openalex.org/A5083926745",
+      "display_name": "Mohammed Latif Siddiq"
+     }
+    },
+    {
+     "author": {
+      "id": "https://openalex.org/A5121823423",
+      "display_name": "Xinye Zhao"
+     }
+    }
+   ],
+   "primary_location": {
+    "id": "doi:10.2139/ssrn.6269349",
+    "doi": "https://doi.org/10.2139/ssrn.6269349",
+    "is_oa": true,
+    "landing_page_url": "https://doi.org/10.2139/ssrn.6269349",
+    "pdf_url": null,
+    "source": {
+     "id": "https://openalex.org/S4210172589",
+     "display_name": "SSRN Electronic Journal",
+     "issn_l": "1556-5068",
+     "issn": [
+      "1556-5068"
+     ],
+     "is_oa": true,
+     "is_in_doaj": false,
+     "is_core": false,
+     "listed_in": [],
+     "host_organization": "https://openalex.org/I1318003438",
+     "host_organization_name": "RELX Group (Netherlands)",
+     "host_organization_lineage": [
+      "https://openalex.org/I1318003438"
+     ],
+     "host_organization_lineage_names": [],
+     "type": "repository"
+    },
+    "license": null,
+    "license_id": null,
+    "version": "acceptedVersion",
+    "is_accepted": true,
+    "is_published": false,
+    "raw_source_name": null,
+    "raw_type": "posted-content"
+   },
+   "locations": [
+    {
+     "id": "doi:10.2139/ssrn.6269349",
+     "doi": "https://doi.org/10.2139/ssrn.6269349",
+     "is_oa": true,
+     "landing_page_url": "https://doi.org/10.2139/ssrn.6269349",
+     "pdf_url": null,
+     "source": {
+      "id": "https://openalex.org/S4210172589",
+      "display_name": "SSRN Electronic Journal",
+      "issn_l": "1556-5068",
+      "issn": [
+       "1556-5068"
+      ],
+      "is_oa": true,
+      "is_in_doaj": false,
+      "is_core": false,
+      "listed_in": [],
+      "host_organization": "https://openalex.org/I1318003438",
+      "host_organization_name": "RELX Group (Netherlands)",
+      "host_organization_lineage": [
+       "https://openalex.org/I1318003438"
+      ],
+      "host_organization_lineage_names": [],
+      "type": "repository"
+     },
+     "license": null,
+     "license_id": null,
+     "version": "acceptedVersion",
+     "is_accepted": true,
+     "is_published": false,
+     "raw_source_name": null,
+     "raw_type": "posted-content"
+    }
+   ],
+   "best_oa_location": {
+    "id": "doi:10.2139/ssrn.6269349",
+    "doi": "https://doi.org/10.2139/ssrn.6269349",
+    "is_oa": true,
+    "landing_page_url": "https://doi.org/10.2139/ssrn.6269349",
+    "pdf_url": null,
+    "source": {
+     "id": "https://openalex.org/S4210172589",
+     "display_name": "SSRN Electronic Journal",
+     "issn_l": "1556-5068",
+     "issn": [
+      "1556-5068"
+     ],
+     "is_oa": true,
+     "is_in_doaj": false,
+     "is_core": false,
+     "listed_in": [],
+     "host_organization": "https://openalex.org/I1318003438",
+     "host_organization_name": "RELX Group (Netherlands)",
+     "host_organization_lineage": [
+      "https://openalex.org/I1318003438"
+     ],
+     "host_organization_lineage_names": [],
+     "type": "repository"
+    },
+    "license": null,
+    "license_id": null,
+    "version": "acceptedVersion",
+    "is_accepted": true,
+    "is_published": false,
+    "raw_source_name": null,
+    "raw_type": "posted-content"
+   },
+   "open_access": {
+    "is_oa": true,
+    "oa_status": "green",
+    "oa_url": "https://doi.org/10.2139/ssrn.6269349",
+    "any_repository_has_fulltext": true
+   },
+   "cited_by_count": 0,
+   "abstract_inverted_index": null
+  },
+  {
+   "id": "https://openalex.org/W7214402852",
+   "doi": "https://doi.org/10.1016/j.infsof.2026.108333",
+   "title": "Security in the age of AI teammates: An empirical study of agentic pull requests on GitHub",
+   "display_name": "Security in the age of AI teammates: An empirical study of agentic pull requests on GitHub",
+   "publication_year": 2026,
+   "publication_date": "2026-09-01",
+   "type": "article",
+   "authorships": [
+    {
+     "author": {
+      "id": "https://openalex.org/A5083926745",
+      "display_name": "Mohammed Latif Siddiq"
+     }
+    },
+    {
+     "author": {
+      "id": "https://openalex.org/A5121823423",
+      "display_name": "Xinye Zhao"
+     }
+    }
+   ],
+   "primary_location": {
+    "id": "doi:10.1016/j.infsof.2026.108333",
+    "doi": "https://doi.org/10.1016/j.infsof.2026.108333",
+    "is_oa": false,
+    "landing_page_url": "https://doi.org/10.1016/j.infsof.2026.108333",
+    "pdf_url": null,
+    "source": {
+     "id": "https://openalex.org/S205010575",
+     "display_name": "Information and Software Technology",
+     "issn_l": "0950-5849",
+     "issn": [
+      "0950-5849",
+      "1873-6025"
+     ],
+     "is_oa": false,
+     "is_in_doaj": false,
+     "is_core": true,
+     "listed_in": [
+      "ccf-b",
+      "cwts-core",
+      "dongbi-c",
+      "jufo-3",
+      "norway-2",
+      "poland-140",
+      "russia-white-list-1",
+      "vabb-shw"
+     ],
+     "host_organization": "https://openalex.org/P4310320990",
+     "host_organization_name": "Elsevier BV",
+     "host_organization_lineage": [
+      "https://openalex.org/P4310320990"
+     ],
+     "host_organization_lineage_names": [
+      "Elsevier BV"
+     ],
+     "type": "journal"
+    },
+    "license": null,
+    "license_id": null,
+    "version": "publishedVersion",
+    "is_accepted": true,
+    "is_published": true,
+    "raw_source_name": "Information and Software Technology",
+    "raw_type": "journal-article"
+   },
+   "locations": [
+    {
+     "id": "doi:10.1016/j.infsof.2026.108333",
+     "doi": "https://doi.org/10.1016/j.infsof.2026.108333",
+     "is_oa": false,
+     "landing_page_url": "https://doi.org/10.1016/j.infsof.2026.108333",
+     "pdf_url": null,
+     "source": {
+      "id": "https://openalex.org/S205010575",
+      "display_name": "Information and Software Technology",
+      "issn_l": "0950-5849",
+      "issn": [
+       "0950-5849",
+       "1873-6025"
+      ],
+      "is_oa": false,
+      "is_in_doaj": false,
+      "is_core": true,
+      "listed_in": [
+       "ccf-b",
+       "cwts-core",
+       "dongbi-c",
+       "jufo-3",
+       "norway-2",
+       "poland-140",
+       "russia-white-list-1",
+       "vabb-shw"
+      ],
+      "host_organization": "https://openalex.org/P4310320990",
+      "host_organization_name": "Elsevier BV",
+      "host_organization_lineage": [
+       "https://openalex.org/P4310320990"
+      ],
+      "host_organization_lineage_names": [
+       "Elsevier BV"
+      ],
+      "type": "journal"
+     },
+     "license": null,
+     "license_id": null,
+     "version": "publishedVersion",
+     "is_accepted": true,
+     "is_published": true,
+     "raw_source_name": "Information and Software Technology",
+     "raw_type": "journal-article"
+    }
+   ],
+   "best_oa_location": null,
+   "open_access": {
+    "is_oa": false,
+    "oa_status": "closed",
+    "oa_url": null,
+    "any_repository_has_fulltext": false
+   },
+   "cited_by_count": 0,
+   "abstract_inverted_index": null
+  }
+ ]
+}

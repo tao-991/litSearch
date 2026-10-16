@@ -1,0 +1,39 @@
+{
+ "offset": 0,
+ "next": null,
+ "data": [
+  {
+   "citingPaper": {
+    "paperId": "a6e9776579fe3529d6401d0f82b83434a6b5e0b7",
+    "externalIds": {
+     "ArXiv": "2608.02693",
+     "CorpusId": 290833124
+    },
+    "url": "https://www.semanticscholar.org/paper/a6e9776579fe3529d6401d0f82b83434a6b5e0b7",
+    "title": "PRWeaver: Evaluating LLM-Based Code Auditors against Long-Horizon Malicious Pull Requests",
+    "venue": "",
+    "year": 2026,
+    "citationCount": 1,
+    "isOpenAccess": false,
+    "openAccessPdf": {
+     "url": "",
+     "status": null,
+     "license": null,
+     "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2608.02693, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+    },
+    "publicationDate": "2026-08-03",
+    "authors": [
+     {
+      "authorId": "2223139189",
+      "name": "Yue-Kun Wang"
+     },
+     {
+      "authorId": "2265746458",
+      "name": "Ming-Fei Cheng"
+     }
+    ],
+    "abstract": "LLM-based code auditors are increasingly integrated into pull-request (PR) workflows, yet their reliability against adversarial changes distributed across repository evolution remains poorly understood. We introduce PRWeaver, a benchmark of 208 execution-validated attacks from ten real-world repositories, each instantiated under four matched review renderings (832 renderings in total). We evaluate three PR-auditing agents across six auditor-model systems. Across all systems, decomposing an attack changes detection by at most five percentage points, showing that commit boundaries alone do not explain evasion. In contrast, per-PR interleaving at $N=16$ and coherent carrier fusion reduce detection by 5-13 and 10-18 points, respectively. Under whole-window review at $N=24$, detection falls to 16-22%, compared with 50-60% under per-PR review. These results show that access to repository history is insufficient: concealment becomes most effective when benign and malicious changes jointly occupy the auditor's active review context or when the stated purpose plausibly accounts for the attack-bearing diff."
+   }
+  }
+ ]
+}

@@ -58,7 +58,7 @@ The model generates N diverse queries from the input (synonyms, method names, di
 Phase 0 findings that shape query generation:
 
 - Queries must be **short, precise phrases**. OpenAlex's default `search` matches full text, so long sentences return tens of thousands of weakly related papers.
-- Each source has its own **query-syntax adapter** (for example arXiv needs boolean syntax such as `all:"coding agent" AND all:"pull request"`; the S2 bulk endpoint is boolean as well).
+- Each source has its own **query-syntax adapter** (for example arXiv needs boolean syntax such as `all:"coding agent" AND all:"pull request"`; the S2 bulk endpoint is boolean as well). The arXiv adapter implemented in Phase 1b splits a phrase into keywords that must all match (stopwords dropped, hyphenated words and quoted phrases kept as phrases); whether this is too strict is to be judged with the recall check.
 - Recall depends heavily on wording: a known relevant paper was missed by three hand-written queries and found at rank 2 once the query used the paper's own terms. This is why query diversity, snowballing and the `known.txt` recall check all matter.
 
 ### 3.3 Multi-source, paginated recall

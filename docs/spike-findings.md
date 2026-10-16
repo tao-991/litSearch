@@ -163,6 +163,14 @@ The tester supplied a paper they consider relevant: *Human-In-The-Loop Software 
 - Multi-angle query generation, citation snowballing and the `known.txt` recall check (SPEC §3.2, §3.6, §11) are required, not optional.
 - Venue level cannot come from the sources (only venue names); a CCF/CORE/JCR mapping would be a separate feature with a user-maintained table.
 
+## 6b. Collector smoke test (Phase 1b, 2026-10-16)
+
+After the collectors were written (`litsearch/collectors/`), `spikes/smoke_collectors.py` ran them once against the real services with the query `human-in-the-loop software development agents`, 5 results each.
+
+- **OpenAlex**: works. 12 credits used (one search = 10, references and citations lookups = 1 each; 805 of 1000 left afterwards). The known paper (arXiv 2506.11009) ranked 2nd; its arXiv ID was filled in correctly from the arXiv location, and the venue came from the conference rather than from arXiv. References (5) and citations (5) of the first result were fetched.
+- **arXiv**: works. One request. With the "all keywords must match" conversion the known paper ranked 1st (33 matches in total).
+- **Semantic Scholar**: HTTP 429 again after the 3 retries; reported as `rate_limited` without crashing the other sources. The references and citations endpoints therefore remain **unverified live**.
+
 ## 7. Suggested SPEC changes
 
 These were applied in SPEC v0.3:
