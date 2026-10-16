@@ -47,7 +47,7 @@ arXiv cannot take long natural-language sentences, so the three queries were con
 - Billing is now **credit-based**, visible in `x-ratelimit-*` response headers and `meta.cost_usd`:
   - No key: 1000 credits/day ($0.10), shared per network egress IP. `mailto` does **not** raise it (the `meta.notice` says so).
   - Free key: $1/day (10×). Sign-up page `openalex.org/settings/api`; the response also mentions `POST /api-keys` with an e-mail address (**not used** here).
-  - Observed cost per request: search (`search=`) 10 credits; list with `filter=` only 1 credit; DOI single lookup 0; error responses (400) 0. Both `search=` and `filter=title_and_abstract.search:` cost 10. The cost of `per-page=50` is **not measured**.
+  - Observed cost per request: search (`search=`) 10 credits; list with `filter=` only 1 credit; DOI single lookup 0; error responses (400) 0. Both `search=` and `filter=title_and_abstract.search:` cost 10. A request with `per-page=200` also costs 10 credits (measured in §6d).
   - Quota reset: `x-ratelimit-reset` was about 72,500 s (roughly 20 h; trust the header).
   - Estimate: about 100 searches/day without a key, about 1000 with one. A Phase 1 run with dozens of queries plus paging will use a lot of the keyless quota.
 - 14 serial requests (0.2 s interval) took 12 s; typical latency 0.3–2 s; no 429.
@@ -171,6 +171,24 @@ After the collectors were written (`litsearch/collectors/`), `spikes/smoke_colle
 - **arXiv**: works. One request. With the "all keywords must match" conversion the known paper ranked 1st (33 matches in total).
 - **Semantic Scholar**: HTTP 429 again after the 3 retries; reported as `rate_limited` without crashing the other sources. The references and citations endpoints therefore remain **unverified live**.
 
+## 6c. De-duplication on real data (Phase 1c)
+
+Running the de-duplicator over the saved Phase 0 results (157 records: 60 OpenAlex, 40 Semantic Scholar, 57 arXiv) gave 129 distinct papers: 115 seen in one source, 11 in two, 3 in all three. Two things in the real data shaped the rules:
+
+- **OpenAlex can return one paper's title with another paper's identifiers.** One work had the title of a 2026 arXiv paper but the arXiv ID, year and authors of a 2022 paper. Title-only matching must therefore also require compatible years, authors and identifiers, which the de-duplicator does.
+- **Repository DOIs are not publisher DOIs.** The same MSR paper appeared with its ACM DOI and with a Zenodo DOI; a Security-in-the-age-of-AI-teammates paper appeared with arXiv, SSRN, Zenodo and journal DOIs. Treating repository DOIs as "a different publisher DOI" kept such copies apart, so they are now ignored by the "different DOIs" safeguard.
+
+## 6d. Why do sources overlap so little for the same phrase? (Phase 1c, 2026-10-16)
+
+Query `human-in-the-loop software development agents`, 20 results per source: of 40 records only 2 were the same paper (OpenAlex and arXiv; Semantic Scholar was rate-limited). Checks:
+
+- OpenAlex **does contain** all 18 arXiv-only papers (looked up by arXiv DOI; single lookups cost 0 credits). The sources do not disagree about what exists; they disagree about what ranks first.
+- The two sources apply **different matching rules** to the same words. arXiv (`all:` on every keyword) matched 33 papers in total. OpenAlex's default `search` is a full-text relevance search with 284,120 matches. Even the first 200 OpenAlex results contained only 6 of arXiv's 33 papers.
+- Restricting OpenAlex to titles and abstracts (`filter=title_and_abstract.search:`) gave 343 matches. Fetching them all (2 requests) and comparing the complete sets: 17 of arXiv's 33 papers are in OpenAlex's set; OpenAlex's set contains 45 papers with an arXiv copy (28 not found by arXiv's query). Why the remaining 16 arXiv papers are missing from OpenAlex's title/abstract set was not investigated (word forms, missing abstracts or arXiv matching other fields are possible, none verified).
+- **A request with `per-page=200` costs 10 credits, the same as one with `per-page=20`.** Credits are charged per request, not per paper, so pages should be as large as useful (up to 200).
+
+Consequences: overlap between sources is expected to be small and is not the goal; the union is. Query generation, paging and snowballing (SPEC §3) matter more than de-duplication volume. For OpenAlex, a title-and-abstract search mode is worth offering next to the full-text mode: it is far less noisy and its complete result set can be fetched cheaply.
+
 ## 7. Suggested SPEC changes
 
 These were applied in SPEC v0.3:
@@ -187,7 +205,7 @@ These were applied in SPEC v0.3:
 
 - Model ID check (before Phase 1).
 - Semantic Scholar: `references`/`citations` endpoints, `limit` maximum, token paging, API-key path (the tester could not apply for a key).
-- OpenAlex: API-key path, full `cursor` paging, credit cost of `per-page=50`, concurrency inside one source (the tester could not obtain a key).
+- OpenAlex: API-key path, full `cursor` paging, concurrency inside one source (the tester could not obtain a key).
 - arXiv: behaviour below 3 s (deliberately not tested), maximum paging depth, whether the date filter works.
 - Google Scholar: one test, 3 queries, one egress IP; long-term ban risk, proxies and `fill` for full abstracts (deliberately not tested).
 - The Phase 0 runs used roughly 110–150 credits of the tester's daily OpenAlex quota (1000).

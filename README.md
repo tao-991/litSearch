@@ -4,13 +4,13 @@ Deep, multi-source, auditable literature search for a research project.
 
 Asking a chat assistant to search the literature tends to end in rate limits, incomplete results, two or three rounds of searching, and no way to tell how much was covered. Lit Search is meant to fix that: give it a project description (plus optional keywords and seed papers) and it runs many queries across several scholarly sources, screens the results through a "reading funnel", and writes a ranked report. The report also records which queries were used, which sources succeeded or failed, and how many new relevant papers each round added, so coverage can be checked rather than guessed.
 
-> **Status: early. Phase 0 (API measurement) is done; Phase 1 (the application) is in progress.** There is no end-to-end search command yet: `litsearch` currently only prints its version. What exists is the specification, the measured behaviour of the data sources, the throwaway scripts behind those measurements, the foundations (configuration, SQLite schema) and one collector per data source (OpenAlex, Semantic Scholar, arXiv) that fetches and normalizes papers. The collectors are not wired into a pipeline or the database yet.
+> **Status: early. Phase 0 (API measurement) is done; Phase 1 (the application) is in progress.** There is no end-to-end search command yet: `litsearch` currently only prints its version. What exists is the specification, the measured behaviour of the data sources, the throwaway scripts behind those measurements, the foundations (configuration, SQLite schema), one collector per data source (OpenAlex, Semantic Scholar, arXiv) that fetches and normalizes papers, and a de-duplicator that merges records of the same paper. These pieces are not wired into a pipeline or the database yet.
 
 Phase 1 progress:
 
 - [x] **1a** Project skeleton, configuration, database schema, tests and lint
 - [x] **1b** Collectors for OpenAlex, Semantic Scholar and arXiv (offline-tested; smoke-tested against the real services)
-- [ ] **1c** De-duplication
+- [x] **1c** De-duplication (merges the same paper found by different sources or queries)
 - [ ] **1d** Retrieval pipeline, `--dry-run`, `--resume`
 - [ ] **1e** Model client, query generation, L1 scoring
 - [ ] **1f** Snowballing, report, CSV, full command line, optional Google Scholar round
@@ -69,6 +69,12 @@ uv run litsearch --version
 
 # optional: a few real requests against the three data sources (about 12 OpenAlex credits)
 uv run python spikes/smoke_collectors.py "your search phrase"
+
+# optional: live demo - search the three sources and de-duplicate (about 10 OpenAlex credits)
+uv run python spikes/demo_search.py "your search phrase"
+
+# optional: see how the de-duplicator merges the saved Phase 0 results (writes spikes/samples/dedup.md)
+uv run python spikes/show_dedup.py
 ```
 
 ## Running the Phase 0 spikes

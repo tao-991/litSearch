@@ -4,8 +4,10 @@ import pytest
 
 from litsearch.normalize import (
     arxiv_id_from_doi,
+    author_surname,
     normalize_arxiv_id,
     normalize_doi,
+    normalize_title,
     openalex_short_id,
 )
 
@@ -82,3 +84,44 @@ def test_openalex_short_id() -> None:
     assert openalex_short_id("https://openalex.org/W42/") == "W42"
     assert openalex_short_id(None) is None
     assert openalex_short_id("") is None
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (
+            "Human-In-The-Loop Software Development Agents: Challenges",
+            "human in the loop software development agents challenges",
+        ),
+        ("  Trust & Acceptance -- of AI?!  ", "trust acceptance of ai"),
+        ("Über die Größe: Résumé", "uber die große resume"),
+        ("Multi   spaced\ttitle", "multi spaced title"),
+        ("", ""),
+        (None, ""),
+    ],
+)
+def test_normalize_title(raw: str | None, expected: str) -> None:
+    assert normalize_title(raw) == expected
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("Jing Jiang", "jiang"),
+        ("A Ghammam", "ghammam"),
+        ("Ghammam, A", "ghammam"),
+        ("Thompson, Ronald E., III", "thompson"),
+        ("Ronald E. Thompson III", "thompson"),
+        ("John Smith Jr", "smith"),
+        ("Gabriele Müller", "muller"),
+        ("J. van der Berg", "berg"),
+        ("van der Berg, Jan", "berg"),
+        ("Madonna", "madonna"),
+        ("", None),
+        ("   ", None),
+        (None, None),
+        (",", None),
+    ],
+)
+def test_author_surname(name: str | None, expected: str | None) -> None:
+    assert author_surname(name) == expected

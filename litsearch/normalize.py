@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 
 _DOI_PREFIXES = (
     "https://doi.org/",
@@ -68,3 +69,34 @@ def openalex_short_id(value: str | None) -> str | None:
         return None
     short = value.strip().rstrip("/").rsplit("/", 1)[-1]
     return short or None
+
+
+_NAME_SUFFIXES = frozenset({"jr", "sr", "ii", "iii", "iv"})
+
+
+def _fold(text: str) -> str:
+    """Lowercase, strip accents, turn every run of non-word characters into a space."""
+    decomposed = unicodedata.normalize("NFKD", text)
+    stripped = "".join(c for c in decomposed if not unicodedata.combining(c))
+    return " ".join(re.sub(r"\W+", " ", stripped.lower()).split())
+
+
+def normalize_title(title: str | None) -> str:
+    """Title reduced to lowercase words, so case, punctuation and hyphens do not matter.
+
+    ``Human-In-The-Loop: Agents`` and ``human in the loop - agents`` become equal.
+    """
+    return _fold(title) if title else ""
+
+
+def author_surname(name: str | None) -> str | None:
+    """Folded surname from ``First Last``, ``F Last`` or ``Last, First`` style names."""
+    if not name or not name.strip():
+        return None
+    if "," in name:
+        tokens = _fold(name.split(",", 1)[0]).split()
+    else:
+        tokens = _fold(name).split()
+        while len(tokens) > 1 and tokens[-1] in _NAME_SUFFIXES:
+            tokens.pop()
+    return tokens[-1] if tokens else None

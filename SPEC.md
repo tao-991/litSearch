@@ -111,9 +111,9 @@ Every collector has its own rate limiting, exponential-backoff retry, circuit br
 - **OpenAlex** (primary source):
   - `/works` search and filters; references via `referenced_works` plus `filter=openalex:W1|W2|...`; citing papers via `filter=cites:W...`.
   - Abstracts come as `abstract_inverted_index` and are reconstructed by ordering words by position.
-  - **Quota model**: without an API key, every network egress IP shares 1000 credits per day ($0.10). A request with a search term costs 10 credits; a pure filter request (references, citations, batch by ID) costs 1; a single-entity lookup and error responses cost 0. The `mailto` parameter does **not** raise the quota (it is only an identifier). A free API key raises it tenfold ($1/day). The cost of `per-page=50` is not yet measured (to verify).
+  - **Quota model**: without an API key, every network egress IP shares 1000 credits per day ($0.10). A request with a search term costs 10 credits; a pure filter request (references, citations, batch by ID) costs 1; a single-entity lookup and error responses cost 0. The `mailto` parameter does **not** raise the quota (it is only an identifier). A free API key raises it tenfold ($1/day). A request costs the same 10 credits whether it asks for 20 or 200 results (measured), so fetch large pages (up to 200) rather than many small ones.
   - Paging: use `page` (at most 10,000 records; `per-page` between 1 and 200). `cursor` paging past the first page requires an API key (401 otherwise).
-  - Default `search` is full-text; `filter=title_and_abstract.search:` is stricter (all terms must match). Evaluate both as recall paths.
+  - Two search modes: the API's plain `search` is a full-text relevance search (284,120 matches for one test phrase, noisy), while `filter=title_and_abstract.search:` matches titles and abstracts only (343 matches for the same phrase, which can be fetched completely with two requests). **Decision (2026-10-16): title-and-abstract is the default mode; full-text is an optional supplementary mode** selected with a command-line option. Both cost 10 credits per request.
   - A free key is recommended but optional; the collector must work without one and report quota exhaustion in `source_runs`.
 - **Semantic Scholar**: Graph API search, references, citations; optional API key. **Best-effort source**: unauthenticated requests share a quota with all other anonymous users and about 85% of Phase 0 requests returned 429 (intermittent, independent of our request rate). Treat it as optional: failures go to `source_runs` and the report, and snowballing must not depend on it. Search paging is `offset`/`limit` with `offset + limit < 1000`; use `/paper/search/bulk` beyond that. The references/citations endpoints are still **to verify**.
 - **arXiv**: official API (Atom XML), at least 3 seconds between requests, one request at a time (confirmed: 12 requests at 3 s intervals, no 429). No citation data. IDs come as `http://arxiv.org/abs/2601.21379v1` and must be normalized (§5.2). Only a minority of preprints carry `doi`/`journal_ref`, so "published or not" cannot be decided from arXiv alone. Date filtering via `submittedDate` is still **to verify**.
@@ -146,11 +146,22 @@ Normalization first:
 - arXiv ID: strip the `http://arxiv.org/abs/` prefix and the version suffix (`v1`, `v7`).
 - A DOI lookup may return a record whose stored DOI differs from the one queried (observed in OpenAlex), so match on several keys rather than trusting a single returned DOI.
 
-Then:
+Then (implemented in `litsearch/pipeline/dedup.py`):
 
-1. Exact match on normalized DOI. 2. Exact match on arXiv ID (version stripped). 3. Normalized-title similarity ≥ 0.92, **and** years differ by ≤ 1, **and** at least one shared author surname. Similarity between 0.85 and 0.92 is only logged as "suspected duplicate" and not merged.
+1. Exact match on a normalized identifier: DOI, arXiv ID (version stripped), or a source's own ID.
+2. Otherwise, title match, in two bands:
+   - normalized-title similarity ≥ 0.92 (Python's `difflib.SequenceMatcher` ratio on lowercase, punctuation-free, accent-free titles), **and** years differ by ≤ 1 (an unknown year does not count against a match), **and** at least one shared author surname (`Last, First`, `First Last` and `F Last` styles are all reduced to the surname);
+   - similarity from 0.85 up to 0.92 (typically a preprint title plus a subtitle): merged only if the author lists agree strongly, meaning both have at least 2 authors and the surname overlap (Jaccard) is at least 0.8, together with the same year and identifier checks. Otherwise the pair is only logged and reported as a "suspected duplicate".
 
-When merging, keep all versions and sources; prefer the formally published metadata for display. Unit tests must cover the case where "a preprint title differs slightly from the published version".
+Safeguards added during implementation (a title match is refused when):
+
+- either title is shorter than 12 normalized characters, or either record has no authors;
+- the titles differ by a number or a "part / volume" style word ("Part I" vs "Part II", "Llama 2" vs "Llama 3", "ICSE 2024" vs "ICSE 2025");
+- both records carry arXiv IDs and they differ, or both carry **publisher** DOIs and they differ. DOIs minted by preprint servers and repositories (arXiv, Zenodo, SSRN, OSF, TechRxiv, ...) do not count as publisher DOIs, because they name a copy of the work, not a different work.
+
+Known limitation: if a published version adds a subtitle to the preprint title, there is no shared identifier, and the author lists do not agree strongly (different author order is fine, but added or dropped authors lower the overlap), the pair is only reported as a suspect. In practice OpenAlex usually links the arXiv copy to the published work, so they share the arXiv ID.
+
+When merging, keep every source record and all identifiers. For display prefer, in order: a published record over an unknown one over a preprint; then OpenAlex, Semantic Scholar, arXiv. The longest abstract and the highest citation count are used; the DOI shown is a publisher DOI when one exists; `status` is `published` if any record is published, else `preprint`, else `unknown`. Unit tests cover the "preprint title differs slightly from the published version" case, the guards above and real-data regressions.
 
 ## 6. Output
 
@@ -252,4 +263,4 @@ lit-search/
 
 - Verified (Anthropic docs, 2026-10): the PDF limits and citation constraints in §7.
 - Verified in Phase 0 (2026-10-16): OpenAlex quota model, paging and abstract format; arXiv API rules and fields; Semantic Scholar search, paging limits and unauthenticated 429 behaviour; `scholarly` basic availability and output fields. See `docs/spike-findings.md`.
-- Still to verify: Semantic Scholar references/citations endpoints, `limit` maximum and API-key path; OpenAlex API-key path and the credit cost of `per-page=50`; arXiv date filtering and paging depth; model IDs (before Phase 1).
+- Still to verify: Semantic Scholar references/citations endpoints, `limit` maximum and API-key path; OpenAlex API-key path; arXiv date filtering and paging depth; model IDs (before Phase 1).
