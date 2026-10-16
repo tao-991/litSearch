@@ -272,3 +272,19 @@ def test_test_profile_means_arxiv_only_five_papers(env: Env) -> None:
         env.app.settings(),
     )
     assert params.sources == ("arxiv",) and params.per_query == 5
+
+
+def test_keep_alive_survives_a_body_the_handler_ignores(env: Env) -> None:
+    """Regression: an unread body used to be parsed as the next request (HTTP 501)."""
+    import http.client
+
+    conn = http.client.HTTPConnection("127.0.0.1", env.server.server_port)
+    head = {"X-Token": env.server.token, "Content-Type": "application/json"}
+    for path in ("/api/heartbeat", "/api/quit", "/api/heartbeat"):
+        conn.request("POST", path, body="{}", headers=head)
+        reply = conn.getresponse()
+        assert reply.status == 200, path
+        reply.read()
+    conn.request("GET", "/api/state", headers={"X-Token": env.server.token})
+    assert conn.getresponse().status == 200
+    conn.close()

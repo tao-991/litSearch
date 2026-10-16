@@ -60,6 +60,7 @@ class UiServer(ThreadingHTTPServer):
 class Handler(BaseHTTPRequestHandler):
     server: UiServer
     protocol_version = "HTTP/1.1"
+    _body_read = False
 
     def log_message(self, format: str, *args: Any) -> None:
         return  # keep the terminal quiet
@@ -122,7 +123,11 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError:
             raise UiError("bad Content-Length") from None
         if length < 0 or length > limit:
+            self.close_connection = (
+                True  # the unread body would corrupt the next request
+            )
             raise UiError("The request is too large.", 413)
+        self._body_read = True
         return self.rfile.read(length)
 
     def _payload(self) -> dict[str, Any]:
@@ -173,7 +178,9 @@ class Handler(BaseHTTPRequestHandler):
             raise UiError("Not found.", 404)
 
     def do_POST(self) -> None:
+        self._body_read = False
         if not self._guard(needs_token=True):
+            self.close_connection = True  # do not read the body of a refused request
             return
         path = urlparse(self.path).path
         try:
@@ -185,6 +192,16 @@ class Handler(BaseHTTPRequestHandler):
             raise
 
     def _post(self, path: str) -> None:
+        try:
+            self._route_post(path)
+        finally:
+            if not self._body_read and not self.close_connection:
+                try:
+                    self._body(MAX_JSON_BYTES)  # an unread body would break keep-alive
+                except UiError:
+                    pass
+
+    def _route_post(self, path: str) -> None:
         app = self.server.app
         simple: dict[str, Callable[[dict[str, Any]], Any]] = {
             "/api/settings": app.save_settings,
