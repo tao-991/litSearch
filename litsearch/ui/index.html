@@ -265,7 +265,10 @@ function api(method, path, body, raw) {
   if (raw !== undefined) { init.body = raw.body; Object.assign(headers, raw.headers); }
   else if (body !== undefined) { headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(body); }
   return fetch(path, init).then(function (r) {
-    return r.json().catch(function () { return {error: 'Unexpected answer'}; }).then(function (d) {
+    return r.text().then(function (t) {
+      try { return JSON.parse(t); }
+      catch (e) { return {error: 'Unexpected answer (HTTP ' + r.status + '): ' + t.slice(0, 200)}; }
+    }).then(function (d) {
       if (!r.ok) throw new Error(d.error || ('Error ' + r.status));
       return d;
     });
