@@ -1,0 +1,10 @@
+.env
+data/
+out/
+.idea/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+spikes/samples/
