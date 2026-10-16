@@ -975,9 +975,9 @@ def test_a_run_scores_the_papers_and_ranks_the_lists(
     )
     assert "Scored 2 of 2 papers from 0 to 5" in markdown
     # these fake papers have no abstract: judged by title they are capped at 4
-    assert "### 1. Trust In Automation  `4/5`" in markdown
+    assert "### Trust In Automation  `4/5`" in markdown
     assert "based on the title only, no abstract" in markdown
-    assert "## Possibly relevant (score 3)" in markdown
+    assert "Possibly relevant (score 3)" in markdown
     rows = list(
         csv.DictReader(
             (workdir / "out" / "scored" / "candidates.csv").open(encoding="utf-8")
@@ -1072,8 +1072,8 @@ def test_score_adds_scores_to_a_run_and_can_be_repeated_for_free(
     markdown = (workdir / "out" / "run-0001" / "candidates.md").read_text(
         encoding="utf-8"
     )
-    assert "## Relevant (score 5 or more)" in markdown
-    assert "## Possibly relevant (score 2)" in markdown
+    assert "(score 5+)" in markdown
+    assert "Possibly relevant (score 2)" in markdown
 
 
 def test_score_asks_for_confirmation(
@@ -1169,3 +1169,116 @@ def test_cut_off_replies_get_a_hint_about_reasoning_models(
     assert "2 of 2 model replies were cut off by the output limit" in result.output
     assert "use a model without reasoning as L1_MODEL" in result.output
     assert "2 papers got no usable score" in result.output
+
+
+# ----------------------------------------------------------------------------- report
+
+
+def make_scored_run(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch, *, model: str = "model-l1"
+) -> None:
+    llm_ready(monkeypatch, L1_MODEL=model)
+    use_fakes(monkeypatch, **two_sources())
+    use_llm(monkeypatch, FakeLLM([score_reply(5, 3)]))
+    assert runner.invoke(app, [*SEARCH, "--yes", "--name", "r1"]).exit_code == 0
+
+
+def test_report_rewrites_all_three_files_without_any_model_or_key(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    make_scored_run(workdir, monkeypatch)
+    for name in ("candidates.html", "candidates.md", "candidates.csv"):
+        (workdir / "out" / "r1" / name).unlink()
+    for var in ("LLM_API_KEY", "L1_MODEL", "QUERY_MODEL"):
+        monkeypatch.delenv(var, raising=False)  # no model settings at all
+
+    def boom(settings: Any) -> None:
+        raise AssertionError("report must not build a model client")
+
+    monkeypatch.setattr(cli, "build_llm", boom)
+    result = runner.invoke(
+        app, ["report", "1", "--db", "data/lit.db", "--out-dir", "out"]
+    )
+    assert result.exit_code == 0, result.output
+    assert "No model was called." in result.output
+    assert "2 of 2 papers scored by model-l1, prompt score-v3" in result.output
+    assert "Open the list in your browser: out/r1/candidates.html" in result.output
+    html = (workdir / "out" / "r1" / "candidates.html").read_text(encoding="utf-8")
+    assert html.startswith("<!doctype html>") and "Trust In Automation" in html
+    assert (workdir / "out" / "r1" / "candidates.md").exists()
+    assert (workdir / "out" / "r1" / "candidates.csv").exists()
+
+
+def test_report_can_pick_which_models_scores_to_show(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    make_scored_run(workdir, monkeypatch, model="model-a")
+    conn = sqlite3.connect(workdir / "data" / "lit.db")
+    with conn:  # a second model scored one paper only, later
+        conn.execute(
+            "INSERT INTO scores (paper_id, project_hash, input_hash, prompt_version, "
+            "model, score, reason, summary, tags) "
+            "SELECT paper_id, project_hash, input_hash, prompt_version, 'model-b', "
+            "1, 'r', 's', '[]' FROM scores LIMIT 1"
+        )
+    default = runner.invoke(app, ["report", "1", "--db", "data/lit.db"])
+    assert "scored by model-a" in default.output  # the more complete one
+    chosen = runner.invoke(
+        app, ["report", "1", "--db", "data/lit.db", "--use-model", "model-b"]
+    )
+    assert "1 of 2 papers scored by model-b" in chosen.output
+
+
+def test_report_thresholds_and_errors(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    make_scored_run(workdir, monkeypatch)
+    ok = runner.invoke(
+        app,
+        [
+            "report",
+            "1",
+            "--db",
+            "data/lit.db",
+            "--min-score",
+            "5",
+            "--maybe-score",
+            "2",
+        ],
+    )
+    assert ok.exit_code == 0, ok.output
+    assert "(score 5+)" in (workdir / "out" / "r1" / "candidates.md").read_text(
+        encoding="utf-8"
+    )
+    bad = runner.invoke(
+        app,
+        [
+            "report",
+            "1",
+            "--db",
+            "data/lit.db",
+            "--min-score",
+            "2",
+            "--maybe-score",
+            "4",
+        ],
+    )
+    assert (
+        bad.exit_code == 2
+        and "--min-score and --maybe-score must satisfy" in bad.output
+    )
+    unknown = runner.invoke(app, ["report", "9", "--db", "data/lit.db"])
+    assert unknown.exit_code == 1 and "no run with id 9" in unknown.output
+    no_db = runner.invoke(app, ["report", "1", "--db", "data/none.db"])
+    assert no_db.exit_code == 1 and "no database at" in no_db.output
+
+
+def test_the_run_and_score_commands_also_write_the_html(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    make_scored_run(workdir, monkeypatch)
+    assert (workdir / "out" / "r1" / "candidates.html").exists()
+    again = runner.invoke(
+        app, ["score", "1", "--db", "data/lit.db", "--out-dir", "out"]
+    )
+    assert "Open the list in your browser:" in again.output

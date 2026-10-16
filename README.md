@@ -40,10 +40,13 @@ uv run litsearch run --queries-file queries.txt
 
 # 4. look at the result
 uv run litsearch status        # sources, queries, papers found and scored
-open out/run-0001/candidates.md      # ranked list; candidates.csv has every paper with its abstract
+open out/run-0001/candidates.html    # the list in your browser (also candidates.md and candidates.csv)
+
+# look at an earlier run again, or change the thresholds: never calls a model
+uv run litsearch report 1 --min-score 5
 ```
 
-Papers are scored by the model after the search (use `--no-score` to skip it; `litsearch score RUN_ID` scores later and can rewrite the lists with other thresholds at no cost). The score is relative to your queries: a paper is relevant if it addresses at least one of them. Scores 4 and 5 form the main list, 3 is "possibly relevant" (collapsed), lower scores are listed with their reason. Summaries are based on the title and abstract only. Small models score generously, so read the list as a screening aid. The list always shows the scores of one model (the one set as `L1_MODEL` if it has scored the run, otherwise the one that scored last), never a mix, and its header says which.
+Papers are scored by the model after the search (use `--no-score` to skip it; `litsearch score RUN_ID` scores later). The score is relative to your queries: a paper is relevant if it addresses at least one of them. **The list groups the papers by the query they fit best, best score first inside each group**: scores 4 and 5 are the main list of a query, 3 is "possibly relevant" (collapsed), lower scores are listed at the end with their reason. `candidates.html` is one self-contained page (works offline, with a score filter and a text filter, dark mode included); `candidates.md` is the same list as Markdown and `candidates.csv` has every paper with its abstract. Summaries are based on the title and abstract only. Small models score generously, so read the list as a screening aid. The list always shows the scores of one model (the most complete scoring, or the one you pick with `litsearch report RUN_ID --use-model NAME`), never a mix, and says which. **`litsearch report RUN_ID` rewrites the three files from what is stored and never calls a model** (no API key needed), so you can look at an old run again or change `--min-score` / `--maybe-score` for free.
 
 `litsearch run --project project.md` does step 2 and 3 in one go (the queries are cached, so a repeat costs nothing). You can also skip the model and give queries yourself: `litsearch run -q "first query" -q "second query"`.
 

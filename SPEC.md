@@ -90,7 +90,7 @@ The model reads each paper's title and abstract and judges it **against the run'
 - `query` is the number of the query the paper fits best. **A paper that fits no query is capped at 2**, and a paper judged from its title alone (no abstract) is capped at 4 and labelled "title only".
 - **Groups in the output** (adjustable with `--min-score` and `--maybe-score`): score 4 or 5 = relevant (the main list); 3 = "possibly relevant" (collapsed, not discarded); 0 to 2 = screened out (listed in a table with the reason).
 - The summary is three sentences **based only on the title and abstract**, labelled as such; `reason` is one sentence about why the paper fits or does not fit its best query; both, and the tags, are written in `SUMMARY_LANGUAGE`.
-- The lists show the scores of **one** model and prompt version, never a mix: those of the configured `L1_MODEL` if it has scored the run (newest prompt version), otherwise those of the model that scored most recently. The list header and `litsearch status` name the model.
+- The lists show the scores of **one** model and prompt version, never a mix: those of the model named by `--use-model` or, after `run`/`score`, of the configured `L1_MODEL` if it has scored the run; otherwise the most complete scoring (the model and prompt version that scored the most papers, a tie going to the newest). The list header and `litsearch status` name the model.
 - Cache: a score is keyed by (paper, **hash of the query set**, hash of title + abstract + language, prompt version, model) in `scores.project_hash` etc., so rescoring costs nothing, and changing the queries, the model or the prompt scores again.
 - If the model's answer misses some papers or is unreadable, those papers are asked for once more; papers that still fail stay unscored and can be retried with `litsearch score RUN_ID`. A model error stops scoring but never loses the search results. Replies cut off by the output limit are counted and reported (a model that spends its output on hidden reasoning does this).
 - Scoring needs a model **without** long hidden reasoning: in Phase 1 tests `deepseek-v4-flash` needed about 11 minutes and half of its 60 papers got no usable score, while `gpt-4.1-nano` scored the same 60 in about one minute (see `docs/spike-findings.md`). Small models are also generous with high scores; treat the list as a screening aid, not a verdict.
@@ -186,9 +186,11 @@ When merging, keep every source record and all identifiers. For display prefer, 
 
 Under `out/<run-name>/`:
 
-- **`report.md`** (with frontmatter, directly usable in Obsidian):
+- **`candidates.html`** (implemented in Phase 1e): one self-contained page that works offline. **Papers are grouped by the query they fit best (in the order of the run), best score first inside a group**; a query without relevant papers is still listed and says so. Each paper is a card with a score badge, the title as a link, year, venue, publication status, authors, the model's one-sentence reason and three-sentence summary (labelled "based on the abstract" or "based on the title only"), tags, links (DOI, arXiv, PDF, page, OpenAlex; only http(s) links are ever used) and where it was found. Score 3 papers are collapsed per query, papers below 3 are in a table at the end; a score filter and a text filter work without reloading. Everything coming from sources or the model is HTML-escaped.
+- **`candidates.md`**: the same grouping as Markdown (Obsidian-friendly); **`candidates.csv`**: every paper with score, matched query, reason, summary, tags and abstract.
+- **`report.md`** (planned for Phase 1f, with frontmatter, directly usable in Obsidian), with the full layout below:
   1. Run summary: parameters, number of queries, per-source status and request counts, new papers per round (saturation), total candidates, number passed.
-  2. Tables of papers grouped by topic tag: score, title, authors, year, venue, **3-sentence summary (abstract-based)**, relevance reason, **links** (DOI / publisher page, arXiv, open-access PDF, OpenAlex / Semantic Scholar page), status (preprint / published).
+  2. Papers grouped by query (as in `candidates.html`) with the fields above.
   3. A collapsible "possibly relevant" section.
   4. Appendix: short table of screened-out papers (title, score, one-line reason); all queries with their effective hit counts; source logs.
 - **`papers.csv`**, optional **`refs.bib`**, and a complete **`run.json`**.
@@ -231,9 +233,9 @@ litsearch run --project project.md [--profile quick|standard|deep] [--rounds N] 
               [--no-score] [--score-batch N] [--min-score N] [--maybe-score N]
               [--since YYYY-MM-DD] [--name NAME] [--db FILE] [--out-dir DIR]
               [--dry-run] [--yes] [--resume RUN_ID]
-litsearch score RUN_ID                 # score the papers of a run that have no score yet; also rewrites the lists (free if nothing is new)
+litsearch score RUN_ID                 # score the papers of a run that have no score yet (calls the model); also rewrites the lists
 litsearch status [RUN_ID]              # what a run did: sources, queries, papers found, papers scored (default: latest run)
-litsearch report RUN_ID                # regenerate the report from cache, no model calls
+litsearch report RUN_ID [--use-model NAME]   # regenerate candidates.html / .md / .csv from what is stored; NEVER calls a model
 litsearch queries RUN_ID               # export / view queries and their effective hit counts
 ```
 

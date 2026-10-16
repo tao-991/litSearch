@@ -21,6 +21,7 @@ from litsearch.llm import LLMError, build_llm
 from litsearch.pdf import PdfError, read_opening
 from litsearch.pipeline import export
 from litsearch.pipeline.brief import make_brief
+from litsearch.pipeline.html_report import write_html
 from litsearch.pipeline.queries import (
     NotCachedError,
     QueryPlan,
@@ -329,6 +330,13 @@ def _write_outputs(
         summary,
         folder / "candidates.md",
         top=top,
+        min_score=min_score,
+        maybe_score=maybe_score,
+    )
+    write_html(
+        candidates,
+        summary,
+        folder / "candidates.html",
         min_score=min_score,
         maybe_score=maybe_score,
     )
@@ -710,7 +718,11 @@ def run(
     if score_result is not None:
         for line in _score_lines(score_result, scoring, run_id):
             typer.echo(line)
-    typer.echo(f"Files: {folder / 'candidates.csv'} and {folder / 'candidates.md'}")
+    typer.echo(f"Open the list in your browser: {folder / 'candidates.html'}")
+    typer.echo(
+        f"Also written: {folder / 'candidates.md'} (Markdown) and "
+        f"{folder / 'candidates.csv'} (every paper, for a spreadsheet)"
+    )
 
 
 @app.command()
@@ -932,7 +944,71 @@ def score(
         for line in _score_lines(result, opts, run_id):
             typer.echo(line)
     typer.echo(f"{summary.n_scored} of {summary.n_papers} papers have a score.")
-    typer.echo(f"Files: {folder / 'candidates.csv'} and {folder / 'candidates.md'}")
+    typer.echo(f"Open the list in your browser: {folder / 'candidates.html'}")
+    typer.echo(
+        f"Also written: {folder / 'candidates.md'} (Markdown) and "
+        f"{folder / 'candidates.csv'} (every paper, for a spreadsheet)"
+    )
+
+
+@app.command()
+def report(
+    run_id: Annotated[int, typer.Argument(help="Id of the run.")],
+    use_model: Annotated[
+        str | None,
+        typer.Option(
+            help="Show the scores of this model (default: the most complete scoring)."
+        ),
+    ] = None,
+    min_score: Annotated[
+        int, typer.Option(help="Score (0 to 5) from which a paper is relevant.")
+    ] = export.DEFAULT_MIN_SCORE,
+    maybe_score: Annotated[
+        int, typer.Option(help="Score from which a paper is 'possibly relevant'.")
+    ] = export.DEFAULT_MAYBE_SCORE,
+    top: Annotated[
+        int, typer.Option(help="Relevant papers per query in the Markdown list.")
+    ] = 50,
+    db_path: Annotated[
+        Path | None,
+        typer.Option("--db", help="SQLite file (default: <DATA_DIR>/litsearch.db)."),
+    ] = None,
+    out_dir: Annotated[Path, typer.Option(help="Where results are written.")] = Path(
+        "out"
+    ),
+) -> None:
+    """Rewrite the lists of a run from what is stored. Never calls a model."""
+    settings = Settings.from_env(env_file=Path(".env"))
+    database = db_path or settings.data_dir / "litsearch.db"
+    if not database.exists():
+        raise _fail(f"no database at {database}", code=1)
+    if not 0 <= maybe_score <= min_score <= 5:
+        raise _fail("--min-score and --maybe-score must satisfy 0 <= maybe <= min <= 5")
+    conn = db.connect(database)
+    db.init_schema(conn)
+    try:
+        summary, folder = _write_outputs(
+            conn,
+            run_id,
+            out_dir,
+            top=top,
+            min_score=min_score,
+            maybe_score=maybe_score,
+            prefer_model=use_model,
+        )
+    except LookupError as exc:
+        raise _fail(str(exc), code=1) from None
+    by = f" by {summary.scored_by}" if summary.scored_by else ""
+    typer.echo(
+        f"Run {summary.name}: {summary.n_scored} of {summary.n_papers} papers "
+        f"scored{by}."
+    )
+    typer.echo("No model was called.")
+    typer.echo(f"Open the list in your browser: {folder / 'candidates.html'}")
+    typer.echo(
+        f"Also written: {folder / 'candidates.md'} (Markdown) and "
+        f"{folder / 'candidates.csv'} (every paper, for a spreadsheet)"
+    )
 
 
 @app.command()

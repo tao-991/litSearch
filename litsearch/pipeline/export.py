@@ -77,9 +77,11 @@ def _run_scores(
     """The scores of this run's query set from ONE model and prompt version, by paper,
     and a label saying which.
 
-    The scores of ``prefer_model`` (the model the user has configured) are used when
-    there are any, otherwise those of the model that scored most recently. Scores of
-    other models or prompt versions are ignored, so the list is never a mix.
+    The scores of ``prefer_model`` are used when there are any. Otherwise the most
+    complete scoring wins (the model and prompt version that scored the most papers; a
+    tie goes to the newest), so a model that was tried on a few papers does not hide a
+    complete scoring. Scores of other models or prompt versions are ignored, so the list
+    is never a mix.
     """
     queries = [
         r["text"]
@@ -99,8 +101,9 @@ def _run_scores(
         ).fetchone()
     if newest is None:
         newest = conn.execute(
-            "SELECT model, prompt_version FROM scores WHERE project_hash = ? "
-            "ORDER BY created_at DESC, rowid DESC LIMIT 1",
+            "SELECT model, prompt_version, COUNT(*) AS n, MAX(created_at) AS latest "
+            "FROM scores WHERE project_hash = ? GROUP BY model, prompt_version "
+            "ORDER BY n DESC, latest DESC, MAX(rowid) DESC LIMIT 1",
             (ctx,),
         ).fetchone()
     if newest is None:
@@ -302,6 +305,56 @@ def write_csv(candidates: list[Candidate], path: Path) -> None:
             )
 
 
+@dataclass(frozen=True, slots=True)
+class QueryGroup:
+    """The papers that fit one query best, split by score."""
+
+    query: str | None  # None = papers that fit no query
+    n_found: int  # results the sources returned for this query (all sources)
+    relevant: list[Candidate]  # score at least min_score
+    maybe: list[Candidate]  # score from maybe_score up to min_score
+
+
+@dataclass(frozen=True, slots=True)
+class Grouped:
+    groups: list[QueryGroup]  # one per query of the run, in the order of the run
+    screened_out: list[Candidate]  # scored below maybe_score (or fitting no query)
+    unscored: list[Candidate]
+
+
+def group_by_query(
+    candidates: list[Candidate],
+    summary: RunSummary,
+    *,
+    min_score: int = DEFAULT_MIN_SCORE,
+    maybe_score: int = DEFAULT_MAYBE_SCORE,
+) -> Grouped:
+    """Group scored papers by the query they fit best, best score first.
+
+    Every query of the run gets a group (a query without relevant papers is worth
+    seeing). A paper appears in exactly one place.
+    """
+    queries = [text for text, _ in summary.queries]
+    found_per_query = {text: sum(counts.values()) for text, counts in summary.queries}
+    relevant: dict[str, list[Candidate]] = {q: [] for q in queries}
+    maybe: dict[str, list[Candidate]] = {q: [] for q in queries}
+    screened: list[Candidate] = []
+    unscored: list[Candidate] = []
+    for c in candidates:  # candidates are already ordered best first
+        if c.score is None:
+            unscored.append(c)
+        elif c.matched_query in relevant and c.score >= min_score:
+            relevant[c.matched_query].append(c)
+        elif c.matched_query in maybe and c.score >= maybe_score:
+            maybe[c.matched_query].append(c)
+        else:
+            screened.append(c)
+    groups = [
+        QueryGroup(q, found_per_query.get(q, 0), relevant[q], maybe[q]) for q in queries
+    ]
+    return Grouped(groups, screened, unscored)
+
+
 def _link_line(c: Candidate) -> str:
     parts = [str(c.year or "year ?"), c.venue or "venue ?", c.status]
     for label, url in (
@@ -310,7 +363,7 @@ def _link_line(c: Candidate) -> str:
         ("PDF", c.oa_pdf_url),
         ("page", c.links.get("landing_page")),
     ):
-        if url:
+        if url and url.lower().startswith(("http://", "https://")):
             parts.append(f"[{label}]({url})")
     return " · ".join(parts)
 
@@ -324,16 +377,15 @@ def _found_by(c: Candidate) -> str:
     return text
 
 
-def _scored_entry(c: Candidate, number: int, *, full: bool) -> list[str]:
-    """One paper of a scored list; ``full`` adds authors and the match line."""
-    lines = [f"### {number}. {c.title}  `{c.score:g}/{MAX_SCORE}`", _link_line(c), ""]
+def _scored_entry(c: Candidate, *, heading: str, full: bool) -> list[str]:
+    """One paper of a scored list; ``full`` adds authors and where it was found."""
+    lines = [f"{heading} {c.title}  `{c.score:g}/{MAX_SCORE}`", _link_line(c), ""]
     if full:
         authors = ", ".join(c.authors[:4]) + (" et al." if len(c.authors) > 4 else "")
         if authors:
             lines += [authors, ""]
     if c.reason:
-        fits = f"`{c.matched_query}`: " if c.matched_query else ""
-        lines.append(f"**Fits** {fits}{c.reason}")
+        lines.append(f"**Fits:** {c.reason}")
     if c.summary:
         basis = (
             "based on the title only, no abstract"
@@ -349,6 +401,10 @@ def _scored_entry(c: Candidate, number: int, *, full: bool) -> list[str]:
     return lines
 
 
+def _queries_phrase(n: int) -> str:
+    return f"{n} query" if n == 1 else f"{n} queries"
+
+
 def write_markdown(
     candidates: list[Candidate],
     summary: RunSummary,
@@ -358,14 +414,15 @@ def write_markdown(
     min_score: int = DEFAULT_MIN_SCORE,
     maybe_score: int = DEFAULT_MAYBE_SCORE,
 ) -> None:
+    """The list as Markdown: papers grouped by the query they fit best, best score
+    first. ``top`` limits the relevant papers listed per query."""
     path.parent.mkdir(parents=True, exist_ok=True)
     scored = [c for c in candidates if c.score is not None]
     n_queries = summary.n_queries
     lines = [
         f"# {summary.name}",
         "",
-        f"Status: **{summary.status}** · "
-        f"{n_queries} {'query' if n_queries == 1 else 'queries'} · "
+        f"Status: **{summary.status}** · {_queries_phrase(n_queries)} · "
         f"{summary.n_papers} distinct papers found",
         "",
     ]
@@ -374,9 +431,8 @@ def write_markdown(
             f"Scored {len(scored)} of {len(candidates)} papers from 0 to {MAX_SCORE} "
             f"by `{summary.scored_by}`, relative to the queries below (a paper is "
             "relevant if it addresses at least one of them). Summaries and reasons "
-            "are written by a model from the "
-            "title and abstract only; links, DOIs, authors and years come from the "
-            "data sources.",
+            "are written by a model from the title and abstract only; links, DOIs, "
+            "authors and years come from the data sources.",
             "",
         ]
     else:
@@ -396,67 +452,74 @@ def write_markdown(
             f"| {s.source} | {s.status} | {s.n_requests} | {s.n_results} "
             f"| {s.error or ''} |"
         )
-    lines += ["", "## Queries", ""]
-    for text, counts in summary.queries:
-        found = (
-            ", ".join(f"{k}: {v}" for k, v in sorted(counts.items())) or "no results"
-        )
-        lines.append(f"- `{text}` — {found}")
 
     if not scored:
+        lines += ["", "## Queries", ""]
+        for text, counts in summary.queries:
+            found = ", ".join(f"{k}: {v}" for k, v in sorted(counts.items()))
+            lines.append(f"- `{text}` — {found or 'no results'}")
         lines += _unscored_section(candidates, top)
-    else:
-        relevant = [c for c in scored if (c.score or 0) >= min_score]
-        maybe = [c for c in scored if maybe_score <= (c.score or 0) < min_score]
-        out = [c for c in scored if (c.score or 0) < maybe_score]
-        unscored = [c for c in candidates if c.score is None]
-        shown = relevant[:top]
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return
+
+    grouped = group_by_query(
+        candidates, summary, min_score=min_score, maybe_score=maybe_score
+    )
+    for number, g in enumerate(grouped.groups, start=1):
+        shown = g.relevant[:top]
         lines += [
             "",
-            f"## Relevant (score {min_score} or more): "
-            f"top {len(shown)} of {len(relevant)}",
+            f"## {number}. `{g.query}`",
+            "",
+            f"{g.n_found} results · **{len(g.relevant)} relevant** (score {min_score}+)"
+            f" · {len(g.maybe)} possibly relevant (score {maybe_score})",
             "",
         ]
-        for i, c in enumerate(shown, start=1):
-            lines += _scored_entry(c, i, full=True)
-        if not relevant:
-            lines += ["None.", ""]
-        if maybe:
+        if not g.relevant:
+            lines += ["No relevant paper fits this query best.", ""]
+        for c in shown:
+            lines += _scored_entry(c, heading="###", full=True)
+        if len(g.relevant) > len(shown):
+            lines += [f"... {len(g.relevant) - len(shown)} more in the CSV.", ""]
+        if g.maybe:
             lines += [
-                f"## Possibly relevant (score {maybe_score})",
-                "",
-                f"<details><summary>{len(maybe)} papers</summary>",
+                f"<details><summary>Possibly relevant (score {maybe_score}): "
+                f"{len(g.maybe)}</summary>",
                 "",
             ]
-            for i, c in enumerate(maybe, start=1):
-                lines += _scored_entry(c, i, full=False)
+            for c in g.maybe:
+                lines += _scored_entry(c, heading="####", full=False)
             lines += ["</details>", ""]
-        if unscored:
-            lines += [
-                f"## Not scored ({len(unscored)})",
-                "",
-                "These papers were found but not scored (a limit was reached or the "
-                f"model failed). Run `litsearch score {summary.run_id}` to score them; "
-                "they are listed in the CSV.",
-                "",
-            ]
-        if out:
-            lines += [
-                f"## Screened out (score below {maybe_score})",
-                "",
-                f"<details><summary>{len(out)} papers</summary>",
-                "",
-                "| Score | Title | Reason |",
-                "|---|---|---|",
-            ]
-            for c in out[:200]:
-                lines.append(
-                    f"| {c.score:g} | {c.title.replace('|', '/')} "
-                    f"| {(c.reason or '').replace('|', '/')} |"
-                )
-            if len(out) > 200:
-                lines.append(f"| | ... {len(out) - 200} more in the CSV | |")
-            lines += ["", "</details>", ""]
+    if grouped.unscored:
+        lines += [
+            "",
+            f"## Not scored ({len(grouped.unscored)})",
+            "",
+            "These papers were found but not scored (a limit was reached or the "
+            f"model failed). Run `litsearch score {summary.run_id}` to score them; "
+            "they are listed in the CSV.",
+            "",
+        ]
+    if grouped.screened_out:
+        lines += [
+            "",
+            f"## Screened out (score below {maybe_score} or fitting no query)",
+            "",
+            f"<details><summary>{len(grouped.screened_out)} papers</summary>",
+            "",
+            "| Score | Title | Reason |",
+            "|---|---|---|",
+        ]
+        for c in grouped.screened_out[:200]:
+            lines.append(
+                f"| {c.score:g} | {c.title.replace('|', '/')} "
+                f"| {(c.reason or '').replace('|', '/')} |"
+            )
+        if len(grouped.screened_out) > 200:
+            lines.append(
+                f"| | ... {len(grouped.screened_out) - 200} more in the CSV | |"
+            )
+        lines += ["", "</details>", ""]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 

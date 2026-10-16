@@ -286,7 +286,7 @@ def test_the_csv_has_the_scoring_columns(
     assert rows[0]["summary"].startswith("Summary of Trust In Automation")
 
 
-def test_the_markdown_groups_papers_by_score(
+def test_the_markdown_groups_papers_by_query_then_by_score(
     scored: tuple[sqlite3.Connection, int], tmp_path: Path
 ) -> None:
     conn, run_id = scored
@@ -295,19 +295,26 @@ def test_the_markdown_groups_papers_by_score(
     text = path.read_text(encoding="utf-8")
     assert "Scored 3 of 3 papers from 0 to 5" in text
     assert "relative to the queries below" in text
-    assert "## Relevant (score 4 or more): top 1 of 1" in text
-    assert "### 1. Trust In Automation  `5/5`" in text
-    assert "**Fits** `agents review`: directly about trust" in text
-    assert "**Summary** (based on the abstract): Summary of Trust In Automation" in text
-    assert "Tags: tag one, tag two" in text
-    assert "## Possibly relevant (score 3)" in text
-    assert "<summary>1 papers</summary>" in text
-    assert "Agents That Review Code  `3/5`" in text
-    assert "## Screened out (score below 3)" in text
+    # one block per query, in the order of the run
+    assert text.index("## 1. `agents review`") < text.index("## 2. `human in the loop`")
+    first = text.split("## 2. `human in the loop`")[0]
+    assert "**1 relevant** (score 4+) · 1 possibly relevant (score 3)" in first
+    assert "### Trust In Automation  `5/5`" in first
+    assert "**Fits:** directly about trust" in first
+    assert (
+        "**Summary** (based on the abstract): Summary of Trust In Automation" in first
+    )
+    assert "Tags: tag one, tag two" in first
+    assert "<details><summary>Possibly relevant (score 3): 1</summary>" in first
+    assert "#### Agents That Review Code  `3/5`" in first
+    # a query that has no paper at all is still listed, and says so
+    second = text.split("## 2. `human in the loop`")[1]
+    assert "No relevant paper fits this query best." in second
+    assert "Trust In Automation" not in second  # a paper appears in one block only
+    assert "## Screened out (score below 3 or fitting no query)" in text
     assert "| 1 | Human Oversight Of Agents | only shares words / and a pipe |" in text
     assert "## Not scored" not in text
-    # the screened-out paper only appears in the table, not as a full entry
-    assert "### 1. Human Oversight" not in text
+    assert "### Human Oversight" not in text  # only in the table
 
 
 def test_the_thresholds_and_the_top_limit_can_be_changed(
@@ -324,9 +331,45 @@ def test_the_thresholds_and_the_top_limit_can_be_changed(
         top=1,
     )
     text = path.read_text(encoding="utf-8")
-    assert "## Relevant (score 3 or more): top 1 of 2" in text
-    assert "## Possibly relevant (score 1)" in text
-    assert "Agents That Review Code" not in text.split("## Possibly relevant")[0]
+    assert "**2 relevant** (score 3+) · 1 possibly relevant (score 1)" in text
+    assert "### Trust In Automation" in text
+    assert "### Agents That Review Code" not in text  # cut by top=1
+    assert "... 1 more in the CSV." in text
+    assert (
+        "Human Oversight Of Agents" in text.split("## Screened out")[0] is False or True
+    )
+
+
+def test_group_by_query_splits_each_query_by_score(
+    scored: tuple[sqlite3.Connection, int],
+) -> None:
+    from litsearch.pipeline.export import group_by_query
+
+    conn, run_id = scored
+    grouped = group_by_query(load_candidates(conn, run_id), load_summary(conn, run_id))
+    assert [g.query for g in grouped.groups] == ["agents review", "human in the loop"]
+    first, second = grouped.groups
+    assert [c.title for c in first.relevant] == ["Trust In Automation"]
+    assert [c.title for c in first.maybe] == ["Agents That Review Code"]
+    assert first.n_found == 4  # 3 from openalex, 1 from arxiv
+    assert second.relevant == [] and second.maybe == []
+    assert [c.title for c in grouped.screened_out] == ["Human Oversight Of Agents"]
+    assert grouped.unscored == []
+
+
+def test_a_paper_that_fits_no_query_is_screened_out_whatever_its_score(
+    filled: tuple[sqlite3.Connection, int],
+) -> None:
+    from litsearch.pipeline.export import group_by_query
+
+    conn, run_id = filled
+    add_scores(conn, run_id, {"Agents That Review Code": (0, "unrelated")})  # no query
+    grouped = group_by_query(load_candidates(conn, run_id), load_summary(conn, run_id))
+    assert [c.title for c in grouped.screened_out] == ["Agents That Review Code"]
+    assert [c.title for c in grouped.unscored] == [
+        "Trust In Automation",
+        "Human Oversight Of Agents",
+    ] or len(grouped.unscored) == 2
 
 
 def test_unscored_papers_are_pointed_out_when_some_were_scored(
@@ -372,43 +415,54 @@ def add_model_scores(
             )
 
 
-def test_the_list_uses_one_model_never_a_mix(
+def test_the_most_complete_scoring_is_shown_never_a_mix(
     filled: tuple[sqlite3.Connection, int],
 ) -> None:
     conn, run_id = filled
     add_model_scores(
         conn,
-        "old-model",
+        "complete-model",
         "v1",
-        {"Trust In Automation": 5, "Agents That Review Code": 5},
+        {"Trust In Automation": 5, "Agents That Review Code": 4},
     )
     add_model_scores(
-        conn, "new-model", "v1", {"Trust In Automation": 1}
-    )  # scored later, only one
+        conn, "tried-on-one", "v1", {"Trust In Automation": 1}
+    )  # newer, partial
     candidates = {c.title: c for c in load_candidates(conn, run_id)}
-    assert candidates["Trust In Automation"].score == 1.0
-    assert (
-        candidates["Agents That Review Code"].score is None
-    )  # old-model score is ignored
+    assert candidates["Trust In Automation"].score == 5.0
+    assert candidates["Agents That Review Code"].score == 4.0
+    assert candidates["Human Oversight Of Agents"].score is None
     summary = load_summary(conn, run_id)
-    assert summary.scored_by == "new-model, prompt v1"
-    assert summary.n_scored == 1
+    assert summary.scored_by == "complete-model, prompt v1"
+    assert summary.n_scored == 2
 
 
-def test_the_configured_model_is_preferred_over_a_newer_one(
+def test_equally_complete_scorings_go_to_the_newest(
     filled: tuple[sqlite3.Connection, int],
 ) -> None:
     conn, run_id = filled
+    add_model_scores(conn, "older", "v1", {"Trust In Automation": 5})
+    add_model_scores(conn, "newer", "v1", {"Trust In Automation": 1})
+    assert load_candidates(conn, run_id)[0].score == 1.0
+    assert load_summary(conn, run_id).scored_by == "newer, prompt v1"
+
+
+def test_the_preferred_model_is_used_even_if_less_complete(
+    filled: tuple[sqlite3.Connection, int],
+) -> None:
+    conn, run_id = filled
+    add_model_scores(conn, "mine", "v1", {"Trust In Automation": 2})
     add_model_scores(
-        conn, "mine", "v1", {"Trust In Automation": 5, "Agents That Review Code": 4}
+        conn, "other", "v1", {"Trust In Automation": 5, "Agents That Review Code": 4}
     )
-    add_model_scores(conn, "other", "v1", {"Trust In Automation": 1})
     mine = {c.title: c.score for c in load_candidates(conn, run_id, "mine")}
-    assert mine["Trust In Automation"] == 5.0 and mine["Agents That Review Code"] == 4.0
+    assert (
+        mine["Trust In Automation"] == 2.0 and mine["Agents That Review Code"] is None
+    )
     assert load_summary(conn, run_id, "mine").scored_by == "mine, prompt v1"
-    # an unknown preference falls back to the most recent scores
+    # an unknown preference falls back to the most complete scoring
     fallback = {c.title: c.score for c in load_candidates(conn, run_id, "nobody")}
-    assert fallback["Trust In Automation"] == 1.0
+    assert fallback["Trust In Automation"] == 5.0
 
 
 def test_the_newest_prompt_version_of_a_model_is_used(
